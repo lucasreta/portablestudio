@@ -1,0 +1,13 @@
+{
+  "name": "portablestudio",
+  "version": "1.0.0",
+  "description": "Portable audio studio for Termux — sample, sequence, and mix on your phone",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}
