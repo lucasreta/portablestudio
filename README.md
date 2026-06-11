@@ -4,14 +4,15 @@ A lightweight browser-based audio studio designed to run on a phone via [Termux]
 
 ## Features
 
-- **Session view** — launch and stop clips per track (4 clips × 16 steps)
+- **Arrangement view** — Ableton-style timeline: drag clips, set length (1–8 bars), toggle loop
 - **Add tracks on demand** — kick, snare, hi-hat, tom, clap, piano, bass, synth, sampler
-- **Piano roll** — edit melodic patterns note by note (mono or poly)
+- **Piano roll** — full note range with octave scroll, scale filter, grid snap (1–16/bar), drag notes and extend length
 - **Step sequencer** — edit drum and sampler trigger patterns
 - **Sampler** — load your own audio files; visual waveform trimmer, pitch, reverse, and volume
 - **Effects per track** — volume, reverb, delay, filter, distortion
 - **Transport** — BPM, play/stop, master volume; `Space` toggles play, `S` stops all clips
 - **Local sessions** — autosaves to browser storage; save named sessions and reload later
+- **Export** — render to MP3/WAV; save/load `.aps` session files for use in any browser
 
 ## Quick start (Termux)
 
@@ -78,6 +79,10 @@ Tests cover pattern logic, constants, and sample math helpers.
 - [Tailwind CSS](https://tailwindcss.com/) — utility styling (CDN)
 
 No build step is required to run the app; only `npm` is needed for tests.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a full history of changes.
 
 ## License
 

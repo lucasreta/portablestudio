@@ -1,7 +1,7 @@
 import {
-  TRACK_COLORS, INSTRUMENT_PRESETS, EFFECT_DEFAULTS, CLIPS_PER_TRACK,
+  TRACK_COLORS, INSTRUMENT_PRESETS, EFFECT_DEFAULTS,
 } from './constants.js';
-import { createEmptyPatterns } from './patterns.js';
+import { createDefaultClips } from './clips.js';
 import { createInstrument } from './instruments.js';
 import { createEffectsChain } from './effects.js';
 
@@ -26,10 +26,9 @@ export function createTrack(masterGain, presetId) {
     presetId,
     type: preset.type,
     color,
-    activeClip: null,
-    patterns: createEmptyPatterns(preset.type, preset.isPolyphonic),
+    playingClipId: null,
+    clips: createDefaultClips(preset.type),
     isPolyphonic: preset.isPolyphonic || false,
-    noteRange: preset.noteRange || [],
     effects,
     chain,
     instrument: null,
@@ -53,19 +52,12 @@ export function createTrack(masterGain, presetId) {
   return track;
 }
 
-/**
- * @param {object} track
- * @param {import('tone').Gain} masterGain
- */
 export function disposeTrack(track) {
   track.instrument?.dispose();
   track.player?.dispose();
   Object.values(track.chain?.nodes || {}).forEach((node) => node.dispose?.());
 }
 
-/**
- * @returns {string[]}
- */
 export function getPresetIdsByCategory() {
   const categories = {};
   for (const [id, preset] of Object.entries(INSTRUMENT_PRESETS)) {
@@ -76,12 +68,10 @@ export function getPresetIdsByCategory() {
   return categories;
 }
 
-/** Reset ID counter (for tests). */
 export function resetTrackIdCounter() {
   nextTrackId = 0;
 }
 
-/** @param {number} next */
 export function setTrackIdCounter(next) {
   nextTrackId = next;
 }

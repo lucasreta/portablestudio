@@ -1,28 +1,46 @@
-import { INSTRUMENT_PRESETS } from './constants.js';
+import { INSTRUMENT_PRESETS, DEFAULT_GRID_DIVISION } from './constants.js';
 import { createEffectsChain, updateEffectsChain } from './effects.js';
 import { createInstrument } from './instruments.js';
-import { createEmptyPatterns } from './patterns.js';
+import { createDefaultClips } from './clips.js';
 import { applySampleSettings } from './sample.js';
-import { base64ToArrayBuffer, isValidSessionData } from './session-serialize.js';
+import {
+  base64ToArrayBuffer,
+  isValidSessionData,
+  normalizeSessionData,
+} from './session-serialize.js';
 import { setTrackIdCounter } from './tracks.js';
+import { setClipIdCounter } from './clips.js';
+import * as state from '../state.js';
 
-/**
- * @param {import('tone').Gain} masterGain
- * @param {object} data
- * @returns {Promise<object[]>}
- */
 export async function restoreTracksFromSession(masterGain, data) {
-  if (!isValidSessionData(data)) return [];
+  const normalized = normalizeSessionData(data);
+  if (!isValidSessionData(normalized)) return [];
 
   const tracks = [];
-  let maxId = -1;
+  let maxTrackId = -1;
+  let maxClipId = -1;
 
-  for (const t of data.tracks) {
+  for (const t of normalized.tracks) {
     const preset = INSTRUMENT_PRESETS[t.presetId];
     if (!preset) continue;
 
     const effects = { ...t.effects };
     const chain = createEffectsChain(masterGain, effects);
+
+    const clips = (t.clips || createDefaultClips(preset.type)).map((c) => ({
+      ...c,
+      playing: false,
+    }));
+
+    let playingClipId = t.playingClipId ?? null;
+    if (playingClipId == null && t.activeClip != null && clips[t.activeClip]) {
+      playingClipId = clips[t.activeClip].id;
+    }
+    clips.forEach((c) => {
+      c.playing = c.id === playingClipId;
+    });
+
+    clips.forEach((c) => { if (c.id > maxClipId) maxClipId = c.id; });
 
     const track = {
       id: t.id,
@@ -30,10 +48,9 @@ export async function restoreTracksFromSession(masterGain, data) {
       presetId: t.presetId,
       type: t.type,
       color: t.color,
-      activeClip: t.activeClip ?? null,
-      patterns: t.patterns ?? createEmptyPatterns(preset.type, preset.isPolyphonic),
+      playingClipId,
+      clips,
       isPolyphonic: t.isPolyphonic ?? preset.isPolyphonic ?? false,
-      noteRange: t.noteRange ?? preset.noteRange ?? [],
       effects,
       chain,
       instrument: null,
@@ -58,21 +75,25 @@ export async function restoreTracksFromSession(masterGain, data) {
 
     updateEffectsChain(chain, effects);
     tracks.push(track);
-    if (t.id > maxId) maxId = t.id;
+    if (t.id > maxTrackId) maxTrackId = t.id;
   }
 
-  setTrackIdCounter(maxId + 1);
+  setTrackIdCounter(maxTrackId + 1);
+  setClipIdCounter(maxClipId + 1);
+
+  state.setGridDivision(normalized.gridDivision ?? DEFAULT_GRID_DIVISION);
+  state.setPianoRollOctave(normalized.pianoRollOctave ?? 4);
+  state.setPianoRollScale(normalized.pianoRollScale ?? 'chromatic');
+  state.setPianoRollRoot(normalized.pianoRollRoot ?? 'C');
+
   return tracks;
 }
 
-/**
- * @param {object} data
- * @returns {{ bpm: number, masterVolume: number, transportPlaying: boolean }}
- */
 export function restoreTransportFromSession(data) {
+  const normalized = normalizeSessionData(data) || data;
   return {
-    bpm: data.bpm ?? 128,
-    masterVolume: data.masterVolume ?? 0.85,
-    transportPlaying: !!data.transportPlaying,
+    bpm: normalized?.bpm ?? 128,
+    masterVolume: normalized?.masterVolume ?? 0.85,
+    transportPlaying: !!normalized?.transportPlaying,
   };
 }

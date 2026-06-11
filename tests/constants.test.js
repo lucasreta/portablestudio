@@ -9,8 +9,7 @@ describe('constants', () => {
     expect(INSTRUMENT_PRESETS.sampler.type).toBe('sampler');
   });
 
-  it('has melodic note ranges for piano and bass', () => {
-    expect(INSTRUMENT_PRESETS.piano.noteRange.length).toBeGreaterThan(0);
+  it('has melodic polyphony flags for piano and bass', () => {
     expect(INSTRUMENT_PRESETS.bass.isPolyphonic).toBe(false);
     expect(INSTRUMENT_PRESETS.piano.isPolyphonic).toBe(true);
   });

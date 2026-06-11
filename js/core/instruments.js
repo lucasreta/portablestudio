@@ -1,4 +1,5 @@
 import { INSTRUMENT_PRESETS } from './constants.js';
+import { stepsToToneDuration } from './grid.js';
 
 /**
  * @param {string} presetId
@@ -110,4 +111,35 @@ export function triggerTrackSound(track, stepValue, time) {
   } catch {
     // ignore scheduling glitches
   }
+}
+
+/**
+ * @param {object} track
+ * @param {{ pitch: string, duration: number, velocity?: number }} noteEvent
+ * @param {number} time
+ */
+export function triggerNoteEvent(track, noteEvent, time) {
+  const preset = INSTRUMENT_PRESETS[track.presetId];
+  if (!preset || track.type !== 'melodic') return;
+  try {
+    const dur = stepsToToneDuration(noteEvent.duration);
+    const vel = noteEvent.velocity ?? preset.velocity ?? 0.8;
+    track.instrument.triggerAttackRelease(noteEvent.pitch, dur, time, vel);
+  } catch { /* ignore */ }
+}
+
+/**
+ * @param {object} track
+ * @param {number} step
+ * @param {number} time
+ * @param {object} clip
+ */
+export function triggerClipAtStep(track, step, time, clip) {
+  if (track.type === 'melodic') {
+    const notes = (clip.notes || []).filter((n) => n.start === step);
+    notes.forEach((n) => triggerNoteEvent(track, n, time));
+    return;
+  }
+  const val = clip.steps?.[step];
+  if (val) triggerTrackSound(track, 1, time);
 }

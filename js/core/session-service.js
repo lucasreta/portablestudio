@@ -32,8 +32,17 @@ export function getTransportSnapshot() {
   };
 }
 
+export function getEditorSnapshot() {
+  return {
+    gridDivision: state.gridDivision,
+    pianoRollOctave: state.pianoRollOctave,
+    pianoRollScale: state.pianoRollScale,
+    pianoRollRoot: state.pianoRollRoot,
+  };
+}
+
 export function getSessionSnapshot() {
-  return serializeSession(state.tracks, getTransportSnapshot());
+  return serializeSession(state.tracks, getTransportSnapshot(), getEditorSnapshot());
 }
 
 export function requestAutosave() {

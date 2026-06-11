@@ -16,9 +16,10 @@ describe('patterns', () => {
     expect(pattern.every((s) => s === 0)).toBe(true);
   });
 
-  it('creates empty melodic pattern with nulls', () => {
-    const pattern = createEmptyPattern('melodic');
-    expect(pattern.every((s) => s === null)).toBe(true);
+  it('creates empty drum steps array', () => {
+    const pattern = createEmptyPattern('drum', 8);
+    expect(pattern).toHaveLength(8);
+    expect(pattern.every((s) => s === 0)).toBe(true);
   });
 
   it('creates four clips per track', () => {

@@ -1,7 +1,19 @@
-export const STEPS_PER_CLIP = 16;
-export const CLIPS_PER_TRACK = 4;
+export const STEPS_PER_BAR = 16;
+export const STEPS_PER_CLIP = 16; // legacy alias
+export const CLIPS_PER_TRACK = 4; // default starter clips
+export const TIMELINE_BARS = 8;
+export const TIMELINE_STEPS = STEPS_PER_BAR * TIMELINE_BARS;
 export const DEFAULT_BPM = 128;
 export const DEFAULT_MASTER_VOLUME = 0.85;
+export const SESSION_VERSION = 2;
+export const APS_FORMAT = 'aps';
+export const APS_FORMAT_VERSION = 2;
+
+/** Grid cells per bar: 1=whole, 2=half, 4=quarter, 8=eighth, 16=sixteenth */
+export const GRID_DIVISIONS = [1, 2, 4, 8, 16];
+export const DEFAULT_GRID_DIVISION = 16;
+
+export const CLIP_LENGTH_BARS_OPTIONS = [1, 2, 4, 8];
 
 export const TRACK_COLORS = [
   '#f15a29', '#3b82f6', '#eab308', '#22c55e',
@@ -51,7 +63,6 @@ export const INSTRUMENT_PRESETS = {
     type: 'melodic',
     category: 'keys',
     isPolyphonic: true,
-    noteRange: ['C3', 'D3', 'Eb3', 'F3', 'G3', 'Ab3', 'Bb3', 'C4', 'D4', 'Eb4', 'F4', 'G4'],
     duration: '8n',
     velocity: 0.75,
   },
@@ -60,7 +71,6 @@ export const INSTRUMENT_PRESETS = {
     type: 'melodic',
     category: 'keys',
     isPolyphonic: false,
-    noteRange: ['C1', 'D1', 'Eb1', 'F1', 'G1', 'Ab1', 'Bb1', 'C2', 'D2', 'Eb2', 'F2', 'G2'],
     duration: '8n',
     velocity: 0.95,
   },
@@ -69,7 +79,6 @@ export const INSTRUMENT_PRESETS = {
     type: 'melodic',
     category: 'keys',
     isPolyphonic: true,
-    noteRange: ['C3', 'D3', 'Eb3', 'F3', 'G3', 'Ab3', 'Bb3', 'C4', 'D4', 'Eb4', 'F4', 'G4', 'Ab4', 'Bb4', 'C5'],
     duration: '4n',
     velocity: 0.6,
   },

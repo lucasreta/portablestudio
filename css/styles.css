@@ -2,6 +2,60 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 .logo-font { font-family: 'Space Grotesk', 'Inter', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
 .studio-dark { background-color: #0f0f0f; }
 .panel { background-color: #1a1a1a; border: 1px solid #2a2a2a; }
+.timeline-container { overflow-x: auto; }
+.timeline-ruler { display: flex; min-width: 100%; }
+.timeline-label-col { width: 0; min-width: 0; }
+.timeline-grid-col { display: flex; }
+.timeline-bar-label { border-left: 1px solid #333; }
+.timeline-track { min-width: 100%; }
+.timeline-lane-wrap { overflow-x: auto; padding: 8px; }
+.timeline-lane {
+    position: relative;
+    height: 56px;
+    min-width: 100%;
+    background: repeating-linear-gradient(90deg, #1a1a1a 0, #1a1a1a calc(12.5% - 1px), #222 calc(12.5% - 1px), #222 12.5%);
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+.timeline-clip {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    background: linear-gradient(180deg, #2d4a3e 0%, #1e3a2f 100%);
+    border: 2px solid #00d26a;
+    border-radius: 8px;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    gap: 4px;
+    min-width: 48px;
+    touch-action: none;
+    user-select: none;
+}
+.timeline-clip-playing {
+    background: linear-gradient(180deg, #00d26a 0%, #00a854 100%);
+    border-color: #00ff88;
+    color: #000;
+}
+.timeline-clip-name { font-size: 9px; font-weight: 700; flex: 1; truncate; overflow: hidden; white-space: nowrap; }
+.timeline-clip .clip-edit-btn { position: static; width: 20px; height: 20px; font-size: 10px; }
+.clip-loop-btn {
+    width: 20px; height: 20px; border-radius: 4px; font-size: 10px;
+    background: #1f1f1f; border: 1px solid #444; color: #888;
+}
+.clip-loop-btn.active { background: #00d26a; color: #000; border-color: #00ff88; }
+.clip-length-select {
+    font-size: 8px; background: #1f1f1f; border: 1px solid #444;
+    border-radius: 4px; color: #aaa; max-width: 36px;
+}
+.clip-resize-handle {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 8px;
+    cursor: ew-resize; background: rgba(0,255,136,0.3); border-radius: 0 6px 6px 0;
+}
+.piano-roll-canvas { display: block; background: #141414; border-radius: 8px; border: 1px solid #333; }
+.step-cell-bar { border-left: 2px solid #555 !important; }
+
 .clip-slot {
     transition: all 0.1s ease;
     min-height: 54px;

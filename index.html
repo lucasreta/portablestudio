@@ -6,6 +6,7 @@
     <title>Portable Studio • Termux</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="studio-dark text-zinc-200">
@@ -51,38 +52,69 @@
             </div>
         </div>
 
+        <div class="px-4 pb-2 flex items-center gap-2 flex-wrap">
+            <label class="text-[10px] text-zinc-500 flex items-center gap-1">Grid
+                <select id="gridDivision" class="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs"></select>
+            </label>
+            <button id="stopAllBtn" class="text-xs px-3 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-full border border-zinc-700 text-zinc-400">STOP ALL</button>
+        </div>
+
         <div class="px-4">
-            <div class="flex items-center justify-between mb-2 px-1">
-                <div class="section-title">SESSION VIEW</div>
-                <button id="stopAllBtn" class="text-xs px-3 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-full border border-zinc-700 text-zinc-400 hover:text-white">STOP ALL CLIPS</button>
+            <div class="section-title mb-2 px-1">ARRANGEMENT</div>
+            <div id="tracksContainer" class="timeline-container space-y-1"></div>
+        </div>
+
+        <div class="px-4 pt-4 pb-2">
+            <div class="section-title mb-2 px-1">EXPORT</div>
+            <div class="panel rounded-2xl p-3 flex flex-wrap gap-2 items-center">
+                <label class="text-[10px] text-zinc-500">Bars
+                    <select id="exportBars" class="ml-1 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs">
+                        <option value="2">2</option>
+                        <option value="4" selected>4</option>
+                        <option value="8">8</option>
+                    </select>
+                </label>
+                <button id="exportMp3Btn" class="text-xs px-3 py-1.5 rounded-xl bg-emerald-600 text-black font-bold">MP3</button>
+                <button id="exportWavBtn" class="text-xs px-3 py-1.5 rounded-xl bg-zinc-800 border border-zinc-700">WAV</button>
+                <input id="exportApsName" type="text" placeholder="filename" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-xs w-24">
+                <button id="exportApsBtn" class="text-xs px-3 py-1.5 rounded-xl bg-[#f15a29] text-black font-bold">.aps</button>
+                <button id="importApsBtn" class="text-xs px-3 py-1.5 rounded-xl bg-zinc-800 border border-zinc-700">Import .aps</button>
+                <input id="importApsInput" type="file" accept=".aps,application/json" class="hidden">
+                <span id="exportStatus" class="text-[10px] text-zinc-500"></span>
             </div>
-            <div id="tracksContainer" class="space-y-2"></div>
         </div>
 
         <div class="px-4 pt-3 pb-8 text-center text-[10px] text-zinc-600">
-            ✎ on a clip to edit without playing • Space = play/stop • S = stop all clips
+            Drag clips on timeline • ✎ edit • ↻ loop • Space = play/stop
         </div>
     </div>
 
     <!-- Pattern / MIDI Editor -->
     <div id="midiModal" class="modal-overlay hidden">
-        <div class="panel w-full max-w-3xl rounded-3xl overflow-hidden">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800 flex-wrap gap-2">
+        <div class="panel w-full max-w-4xl rounded-3xl overflow-hidden max-h-[95vh] flex flex-col">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800 flex-wrap gap-2 shrink-0">
                 <div>
                     <div id="modalTrackName" class="font-bold text-xl"></div>
                     <div id="modalClipInfo" class="text-xs text-zinc-500"></div>
                 </div>
-                <div class="flex items-center gap-x-2 flex-wrap">
-                    <button id="previewBtn" class="px-4 py-2 text-sm rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">Preview</button>
-                    <button id="clearClipBtn" class="px-4 py-2 text-sm rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-red-400">Clear</button>
-                    <button id="closeModalBtn" class="px-4 py-2 text-sm rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">Close</button>
-                    <button id="saveModalBtn" class="px-5 py-2 text-sm rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-black font-bold">Save</button>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="octaveDown" type="button" class="px-2 py-1 text-sm rounded-lg bg-zinc-800 border border-zinc-700">◀ Oct</button>
+                    <button id="octaveUp" type="button" class="px-2 py-1 text-sm rounded-lg bg-zinc-800 border border-zinc-700">Oct ▶</button>
+                    <select id="rollScale" class="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs max-w-[140px]"></select>
+                    <select id="rollGrid" class="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs">
+                        <option value="1">1/bar</option><option value="2">2/bar</option><option value="4">4/bar</option><option value="8">8/bar</option><option value="16" selected>16/bar</option>
+                    </select>
+                    <button id="previewBtn" class="px-3 py-1.5 text-sm rounded-xl bg-zinc-800 border border-zinc-700">Preview</button>
+                    <button id="clearClipBtn" class="px-3 py-1.5 text-sm rounded-xl bg-zinc-800 border border-zinc-700 text-red-400">Clear</button>
+                    <button id="closeModalBtn" class="px-3 py-1.5 text-sm rounded-xl bg-zinc-800 border border-zinc-700">Close</button>
+                    <button id="saveModalBtn" class="px-4 py-1.5 text-sm rounded-xl bg-emerald-500 text-black font-bold">Save</button>
                 </div>
             </div>
-            <div class="p-4 overflow-x-auto">
-                <div id="pianoRollContainer" class="piano-roll min-w-[620px]"></div>
+            <div class="p-4 overflow-auto flex-1">
+                <canvas id="pianoRollCanvas" class="piano-roll-canvas"></canvas>
+                <div id="stepSeqContainer" class="step-sequencer hidden"></div>
             </div>
-            <div class="px-5 pb-4 text-[10px] text-zinc-500">Tap cells to add/remove notes or steps</div>
+            <div class="px-5 pb-4 text-[10px] text-zinc-500 shrink-0">Tap to add notes • drag to move • drag right edge to lengthen</div>
         </div>
     </div>
 

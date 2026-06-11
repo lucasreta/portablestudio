@@ -1,8 +1,5 @@
-import { STEPS_PER_CLIP } from './constants.js';
-import { isStepTriggered } from './patterns.js';
-import { triggerTrackSound } from './instruments.js';
+import { triggerClipAtStep } from './instruments.js';
 
-let currentStep = 0;
 /** @type {number | null} */
 let schedulerId = null;
 
@@ -11,14 +8,27 @@ let schedulerId = null;
  */
 export function startScheduler(tracks) {
   if (schedulerId !== null) return;
-  currentStep = 0;
   schedulerId = Tone.Transport.scheduleRepeat((time) => {
     tracks.forEach((track) => {
-      if (track.activeClip === null) return;
-      const val = track.patterns[track.activeClip][currentStep % STEPS_PER_CLIP];
-      if (isStepTriggered(val)) triggerTrackSound(track, val, time);
+      const clip = track.clips?.find((c) => c.id === track.playingClipId && c.playing);
+      if (!clip) return;
+
+      const pos = clip.playStep ?? 0;
+      triggerClipAtStep(track, pos, time, clip);
+
+      if (clip.loop) {
+        clip.playStep = (pos + 1) % clip.lengthSteps;
+      } else {
+        const next = pos + 1;
+        if (next >= clip.lengthSteps) {
+          clip.playing = false;
+          clip.playStep = 0;
+          track.playingClipId = null;
+        } else {
+          clip.playStep = next;
+        }
+      }
     });
-    currentStep = (currentStep + 1) % STEPS_PER_CLIP;
   }, '16n');
 }
 
@@ -29,11 +39,8 @@ export function stopScheduler() {
   }
 }
 
-export function getCurrentStep() {
-  return currentStep;
-}
-
-/** @param {number} step */
-export function setCurrentStep(step) {
-  currentStep = step;
+export function resetClipPlayheads(tracks) {
+  tracks.forEach((t) => {
+    t.clips?.forEach((c) => { c.playStep = 0; });
+  });
 }

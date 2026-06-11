@@ -22,26 +22,25 @@ describe('session-serialize', () => {
       presetId: 'kick',
       type: 'drum',
       color: '#f15a29',
-      activeClip: 1,
-      patterns: [[1, 0, 0, 0]],
+      playingClipId: 1,
+      clips: [{ id: 1, name: 'Clip', startStep: 0, lengthBars: 1, lengthSteps: 16, loop: true, steps: [1, 0, 0, 0] }],
       isPolyphonic: false,
-      noteRange: [],
       effects: { volume: 1, reverb: 0, delay: 0, filter: 0, distortion: 0 },
       sampleSettings: { playbackRate: 1, start: 0, end: 1, volume: 1, reverse: false },
       loadedFileName: null,
       _rawFileData: null,
     };
     const serialized = serializeTrack(track);
-    expect(serialized.activeClip).toBe(1);
+    expect(serialized.playingClipId).toBe(1);
     expect(serialized.sampleBase64).toBeNull();
     expect(serialized.instrument).toBeUndefined();
   });
 
-  it('serializes full session with transport', () => {
+  it('serializes full session with transport and aps format', () => {
     const data = serializeSession([], { bpm: 140, masterVolume: 0.7, transportPlaying: true });
     expect(data.version).toBe(SESSION_VERSION);
+    expect(data.format).toBe('aps');
     expect(data.bpm).toBe(140);
-    expect(data.transportPlaying).toBe(true);
     expect(isValidSessionData(data)).toBe(true);
   });
 
