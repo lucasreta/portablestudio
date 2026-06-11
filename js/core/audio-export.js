@@ -1,8 +1,8 @@
 import { STEPS_PER_BAR } from './constants.js';
 import { triggerClipAtStep, createInstrument } from './instruments.js';
 import { createEffectsChain } from './effects.js';
-import { INSTRUMENT_PRESETS } from './constants.js';
 import { processSampleBuffer } from './sample.js';
+import { createSampleVoicePool } from './sample-voices.js';
 
 /**
  * @param {object[]} tracks
@@ -22,18 +22,32 @@ export async function renderSessionToBuffer(tracks, options = {}) {
       const chain = createEffectsChain(master, trackData.effects || {});
       let instrument = null;
       let player = null;
+      let voicePool = null;
       if (trackData.type === 'sampler' && trackData._rawBuffer) {
         player = new Tone.Player().connect(chain.input);
         player.buffer = processSampleBuffer(trackData._rawBuffer, trackData.sampleSettings || {});
-      } else if (trackData.type !== 'sampler') {
+      } else if (trackData.type === 'sampleInstrument' && trackData._rawBuffer) {
+        voicePool = createSampleVoicePool(chain.input);
+        voicePool.setBuffer(processSampleBuffer(trackData._rawBuffer, trackData.sampleSettings || {}));
+      } else if (!['sampler', 'sampleInstrument', 'audio'].includes(trackData.type)) {
         instrument = createInstrument(trackData.presetId, chain.input);
       }
-      return { ...trackData, instrument, player };
+      return { ...trackData, instrument, player, voicePool, chain };
+    });
+
+    liveTracks.forEach((trackData) => {
+      if (trackData.type !== 'audio') return;
+      (trackData.clips || []).forEach((clip) => {
+        if (!clip._rawBuffer) return;
+        const p = new Tone.Player(clip._rawBuffer).connect(trackData.chain.input);
+        transport.schedule((time) => p.start(time), `${clip.startStep}*16n`);
+      });
     });
 
     for (let step = 0; step < totalSteps; step++) {
       transport.schedule((time) => {
         liveTracks.forEach((trackData) => {
+          if (trackData.type === 'audio') return;
           (trackData.clips || []).forEach((clip) => {
             if (step < clip.startStep || step >= clip.startStep + clip.lengthSteps) return;
             const pos = step - clip.startStep;

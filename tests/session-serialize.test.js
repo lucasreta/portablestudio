@@ -6,7 +6,9 @@ import {
   serializeSession,
   isValidSessionData,
   SESSION_VERSION,
+  normalizeSessionData,
 } from '../js/core/session-serialize.js';
+import { createSessionSnapshot } from '../js/core/session-service.js';
 
 describe('session-serialize', () => {
   it('round-trips array buffers through base64', () => {
@@ -47,5 +49,48 @@ describe('session-serialize', () => {
   it('rejects invalid session data', () => {
     expect(isValidSessionData(null)).toBe(false);
     expect(isValidSessionData({ version: 99 })).toBe(false);
+  });
+
+  it('creates a valid session snapshot from state, transport, and editor metadata', () => {
+    const data = createSessionSnapshot(
+      [{ id: 0, name: 'T', presetId: 'kick', type: 'drum', color: '#f15a29', playingClipId: null, clips: [], isPolyphonic: false, effects: {}, sampleSettings: {}, loadedFileName: null }],
+      { bpm: 132, masterVolume: 0.8, transportPlaying: false },
+      { gridDivision: 8, pianoRollOctave: 3, pianoRollScale: 'minor', pianoRollRoot: 'C' },
+    );
+
+    expect(data.bpm).toBe(132);
+    expect(data.masterVolume).toBe(0.8);
+    expect(data.gridDivision).toBe(8);
+    expect(data.pianoRollScale).toBe('minor');
+    expect(isValidSessionData(data)).toBe(true);
+  });
+
+  it('normalizes legacy v1 pattern sessions into clip structures', () => {
+    const legacy = {
+      version: 1,
+      format: 'aps',
+      formatVersion: 1,
+      bpm: 120,
+      masterVolume: 0.9,
+      gridDivision: 16,
+      pianoRollOctave: 4,
+      pianoRollScale: 'chromatic',
+      pianoRollRoot: 'C',
+      tracks: [
+        {
+          id: 1,
+          name: 'Legacy',
+          type: 'drum',
+          presetId: 'kick',
+          patterns: [[1, 0, 1, 0], [0, 1, 0, 1]],
+          activeClip: 1,
+        },
+      ],
+    };
+
+    const normalized = normalizeSessionData(legacy);
+    expect(normalized.tracks[0].clips).toHaveLength(2);
+    expect(normalized.tracks[0].clips[0].steps).toEqual([1, 0, 1, 0]);
+    expect(normalized.tracks[0].playingClipId).toBe(1);
   });
 });

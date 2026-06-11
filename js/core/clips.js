@@ -2,8 +2,10 @@ import { STEPS_PER_BAR, CLIPS_PER_TRACK } from './constants.js';
 
 let nextClipId = 0;
 
+/** @typedef {'drum'|'melodic'|'sampler'|'sampleInstrument'|'audio'} ClipTrackType */
+
 /**
- * @param {'drum'|'melodic'|'sampler'} type
+ * @param {ClipTrackType} type
  * @param {object} [opts]
  */
 export function createClip(type, opts = {}) {
@@ -21,8 +23,10 @@ export function createClip(type, opts = {}) {
     loop: opts.loop ?? true,
     playing: opts.playing ?? false,
     playStep: 0,
-    steps: type === 'melodic' ? null : createEmptySteps(lengthSteps),
-    notes: type === 'melodic' ? [] : null,
+    steps: (type === 'melodic' || type === 'sampleInstrument') ? null : type === 'audio' ? null : createEmptySteps(lengthSteps),
+    notes: (type === 'melodic' || type === 'sampleInstrument') ? [] : null,
+    audioFileName: type === 'audio' ? null : undefined,
+    hasRecording: false,
   };
 }
 
@@ -37,7 +41,7 @@ export function createEmptySteps(lengthSteps) {
  * @param {'drum'|'melodic'|'sampler'} type
  * @param {number} [count]
  */
-export function createDefaultClips(type, count = CLIPS_PER_TRACK) {
+export function createDefaultClips(type, count = 1) {
   return Array.from({ length: count }, (_, i) => createClip(type, {
     name: `Clip ${i + 1}`,
     startStep: i * STEPS_PER_BAR,
@@ -54,8 +58,10 @@ export function setClipLengthBars(clip, lengthBars, type) {
   const lengthSteps = lengthBars * STEPS_PER_BAR;
   clip.lengthBars = lengthBars;
   clip.lengthSteps = lengthSteps;
-  if (type === 'melodic') {
+  if (type === 'melodic' || type === 'sampleInstrument') {
     clip.notes = (clip.notes || []).filter((n) => n.start < lengthSteps);
+  } else if (type === 'audio') {
+    // audio clip length can follow recording duration later
   } else {
     const prev = clip.steps || [];
     clip.steps = createEmptySteps(lengthSteps);

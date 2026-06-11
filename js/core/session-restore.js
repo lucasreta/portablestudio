@@ -3,6 +3,8 @@ import { createEffectsChain, updateEffectsChain } from './effects.js';
 import { createInstrument } from './instruments.js';
 import { createDefaultClips } from './clips.js';
 import { applySampleSettings } from './sample.js';
+import { createSampleVoicePool } from './sample-voices.js';
+import { loadAudioIntoClip } from './audio-clip.js';
 import {
   base64ToArrayBuffer,
   isValidSessionData,
@@ -30,6 +32,7 @@ export async function restoreTracksFromSession(masterGain, data) {
     const clips = (t.clips || createDefaultClips(preset.type)).map((c) => ({
       ...c,
       playing: false,
+      player: null,
     }));
 
     let playingClipId = t.playingClipId ?? null;
@@ -38,9 +41,8 @@ export async function restoreTracksFromSession(masterGain, data) {
     }
     clips.forEach((c) => {
       c.playing = c.id === playingClipId;
+      if (c.id > maxClipId) maxClipId = c.id;
     });
-
-    clips.forEach((c) => { if (c.id > maxClipId) maxClipId = c.id; });
 
     const track = {
       id: t.id,
@@ -55,7 +57,16 @@ export async function restoreTracksFromSession(masterGain, data) {
       chain,
       instrument: null,
       player: null,
-      sampleSettings: { ...t.sampleSettings },
+      voicePool: null,
+      sampleSettings: {
+        playbackRate: 1,
+        start: 0,
+        end: 1,
+        volume: 1,
+        reverse: false,
+        rootKey: 'C3',
+        ...t.sampleSettings,
+      },
       loadedFileName: t.loadedFileName,
       _rawBuffer: null,
       _rawFileData: null,
@@ -68,6 +79,21 @@ export async function restoreTracksFromSession(masterGain, data) {
         track._rawFileData = fileData;
         track._rawBuffer = await Tone.getContext().decodeAudioData(fileData.slice(0));
         applySampleSettings(track);
+      }
+    } else if (preset.type === 'sampleInstrument') {
+      track.voicePool = createSampleVoicePool(chain.input);
+      if (t.sampleBase64) {
+        const fileData = base64ToArrayBuffer(t.sampleBase64);
+        track._rawFileData = fileData;
+        track._rawBuffer = await Tone.getContext().decodeAudioData(fileData.slice(0));
+        applySampleSettings(track);
+      }
+    } else if (preset.type === 'audio') {
+      for (const clip of track.clips) {
+        if (clip.audioBase64) {
+          const fileData = base64ToArrayBuffer(clip.audioBase64);
+          await loadAudioIntoClip(clip, fileData, clip.audioFileName || 'recording');
+        }
       }
     } else {
       track.instrument = createInstrument(t.presetId, chain.input);

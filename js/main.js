@@ -22,7 +22,14 @@ async function init() {
   setupExportUI();
   bindClipEditOnLongPress();
 
-  await loadActiveSession();
+  const transport = await loadActiveSession();
+  if (transport) {
+    const bpmEl = document.getElementById('bpm');
+    const masterEl = document.getElementById('masterVol');
+    if (bpmEl) bpmEl.value = String(transport.bpm);
+    if (masterEl) masterEl.value = String(transport.masterVolume);
+  }
+
   buildSessionUI();
   updateSessionBar();
 

@@ -35,8 +35,11 @@ function serializeClip(clip, type) {
     loop: clip.loop,
     playing: clip.playing,
     playStep: clip.playStep ?? 0,
-    steps: type === 'melodic' ? null : clip.steps,
-    notes: type === 'melodic' ? clip.notes : null,
+    steps: (type === 'melodic' || type === 'sampleInstrument' || type === 'audio') ? null : clip.steps,
+    notes: (type === 'melodic' || type === 'sampleInstrument') ? clip.notes : null,
+    audioFileName: clip.audioFileName ?? null,
+    hasRecording: clip.hasRecording ?? false,
+    audioBase64: clip._rawFileData ? arrayBufferToBase64(clip._rawFileData) : null,
   };
 }
 

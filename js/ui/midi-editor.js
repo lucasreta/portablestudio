@@ -1,8 +1,10 @@
-import { STEPS_PER_BAR } from '../core/constants.js';
 import { startAudio } from '../core/audio.js';
-import { toggleDrumStep, clearSteps } from '../core/patterns.js';
+import { clearSteps } from '../core/patterns.js';
 import { triggerClipAtStep } from '../core/instruments.js';
 import { getScaleOptions } from '../core/scales.js';
+import {
+  getGridCells, toggleGridCell, isGridCellActive, usesBlackKeyStyle, stepsPerGridCell,
+} from '../core/grid.js';
 import { requestAutosave } from '../core/session-service.js';
 import { PianoRollEditor } from './piano-roll.js';
 import * as state from '../state.js';
@@ -23,6 +25,7 @@ export function openClipEditor(trackId, clipId) {
   const track = state.getTrack(trackId);
   const clip = state.getClip(trackId, clipId);
   if (!track || !clip) return;
+  if (track.type === 'audio') return;
 
   const copy = JSON.parse(JSON.stringify(clip));
   state.startEditing(trackId, clipId, copy);
@@ -34,7 +37,7 @@ export function openClipEditor(trackId, clipId) {
   setupEditorToolbar(track);
   document.getElementById('midiModal').classList.remove('hidden');
 
-  if (track.type === 'melodic') {
+  if (track.type === 'melodic' || track.type === 'sampleInstrument') {
     document.getElementById('pianoRollCanvas').classList.remove('hidden');
     document.getElementById('stepSeqContainer').classList.add('hidden');
     getPianoRoll().load(state.editingClip, {
@@ -49,10 +52,25 @@ export function openClipEditor(trackId, clipId) {
   }
 }
 
+function applyGridDivision(division, track) {
+  state.setGridDivision(division);
+  const gridSel = document.getElementById('rollGrid');
+  const mainGrid = document.getElementById('gridDivision');
+  if (gridSel) gridSel.value = String(division);
+  if (mainGrid) mainGrid.value = String(division);
+
+  if (track.type === 'melodic' || track.type === 'sampleInstrument') {
+    getPianoRoll().setDivision(division);
+  } else if (state.editingClip) {
+    renderStepSequencer(track);
+  }
+  requestAutosave();
+}
+
 function setupEditorToolbar(track) {
   const scaleSel = document.getElementById('rollScale');
   const gridSel = document.getElementById('rollGrid');
-  if (scaleSel && track.type === 'melodic') {
+  if (scaleSel && (track.type === 'melodic' || track.type === 'sampleInstrument')) {
     scaleSel.innerHTML = getScaleOptions()
       .map((s) => `<option value="${s.id}" ${state.pianoRollScale === s.id ? 'selected' : ''}>${s.label}</option>`)
       .join('');
@@ -65,9 +83,7 @@ function setupEditorToolbar(track) {
   if (gridSel) {
     gridSel.value = String(state.gridDivision);
     gridSel.onchange = () => {
-      state.setGridDivision(parseInt(gridSel.value, 10));
-      if (track.type === 'melodic') getPianoRoll().setDivision(state.gridDivision);
-      requestAutosave();
+      applyGridDivision(parseInt(gridSel.value, 10), track);
     };
   }
   document.getElementById('octaveDown').onclick = () => {
@@ -83,21 +99,46 @@ function setupEditorToolbar(track) {
 function renderStepSequencer(track) {
   const container = document.getElementById('stepSeqContainer');
   container.innerHTML = '';
-  const steps = state.editingClip.lengthSteps;
 
-  for (let step = 0; step < steps; step++) {
-    const cell = document.createElement('div');
-    cell.className = 'step-cell';
-    if (step % STEPS_PER_BAR === 0) cell.classList.add('step-cell-bar');
-    cell.textContent = (step % STEPS_PER_BAR) + 1;
-    if (state.editingClip.steps?.[step]) cell.classList.add('active');
-    cell.addEventListener('click', () => {
-      state.editingClip.steps = toggleDrumStep(state.editingClip.steps, step);
-      cell.classList.toggle('active');
+  const division = state.gridDivision;
+  const cells = getGridCells(state.editingClip.lengthSteps, division);
+  const blackKeys = usesBlackKeyStyle(division);
+
+  let currentBar = null;
+  let barRow = null;
+
+  cells.forEach((cell) => {
+    if (cell.barIndex !== currentBar) {
+      currentBar = cell.barIndex;
+      barRow = document.createElement('div');
+      barRow.className = 'step-seq-bar';
+      barRow.style.gridTemplateColumns = `repeat(${division}, 1fr)`;
+      const barLabel = document.createElement('div');
+      barLabel.className = 'step-seq-bar-label';
+      barLabel.textContent = `Bar ${currentBar + 1}`;
+      container.appendChild(barLabel);
+      container.appendChild(barRow);
+    }
+
+    const el = document.createElement('div');
+    el.className = `step-cell ${blackKeys ? 'step-cell-black' : 'step-cell-white'}`;
+    el.textContent = String(cell.label);
+    if (isGridCellActive(state.editingClip.steps, cell.startStep, cell.cellSize)) {
+      el.classList.add('active');
+    }
+
+    el.addEventListener('click', () => {
+      state.editingClip.steps = toggleGridCell(
+        state.editingClip.steps,
+        cell.startStep,
+        cell.cellSize,
+      );
+      el.classList.toggle('active');
       requestAutosave();
     });
-    container.appendChild(cell);
-  }
+
+    barRow.appendChild(el);
+  });
 }
 
 function saveChanges() {
@@ -112,7 +153,7 @@ function saveChanges() {
 function clearCurrentClip() {
   const track = state.getTrack(state.editingTrackId);
   if (!track || !state.editingClip) return;
-  if (track.type === 'melodic') {
+  if (track.type === 'melodic' || track.type === 'sampleInstrument') {
     state.editingClip.notes = [];
     getPianoRoll().load(state.editingClip);
   } else {
@@ -157,4 +198,11 @@ export function bindClipEditOnLongPress() {
     e.preventDefault();
     openClipEditor(parseInt(clip.dataset.track, 10), parseInt(clip.dataset.clip, 10));
   });
+}
+
+/** Called when main transport grid selector changes while editor may be open. */
+export function refreshEditorGrid(division) {
+  const track = state.getTrack(state.editingTrackId);
+  if (!track || !state.editingClip) return;
+  applyGridDivision(division, track);
 }

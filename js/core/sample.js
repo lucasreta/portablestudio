@@ -71,7 +71,8 @@ export async function loadSampleFromBuffer(track, fileData, fileName) {
  * @param {object} track
  */
 export function applySampleSettings(track) {
-  if (!track._rawBuffer || !track.player) return;
+  if (!track._rawBuffer) return;
   const processed = processSampleBuffer(track._rawBuffer, track.sampleSettings);
-  track.player.buffer = processed;
+  if (track.player) track.player.buffer = processed;
+  if (track.voicePool) track.voicePool.setBuffer(processed);
 }

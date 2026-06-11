@@ -1,5 +1,7 @@
 import { INSTRUMENT_PRESETS } from './constants.js';
 import { stepsToToneDuration } from './grid.js';
+import { pitchToPlaybackRate } from './sample-pitch.js';
+import { processSampleBuffer } from './sample.js';
 
 /**
  * @param {string} presetId
@@ -65,6 +67,29 @@ export function createInstrument(presetId, destination) {
   }
 }
 
+function getProcessedBuffer(track) {
+  if (!track._rawBuffer) return null;
+  return processSampleBuffer(track._rawBuffer, track.sampleSettings || {});
+}
+
+/**
+ * @param {object} track
+ * @param {{ pitch: string, duration: number, velocity?: number }} noteEvent
+ * @param {number} time
+ */
+export function triggerSampleInstrumentNote(track, noteEvent, time) {
+  if (!track.voicePool || !track._rawBuffer) return;
+  const buf = getProcessedBuffer(track);
+  if (!buf) return;
+
+  track.voicePool.setBuffer(buf);
+  const { rootKey = 'C3', playbackRate = 1, volume = 1 } = track.sampleSettings || {};
+  const rate = pitchToPlaybackRate(noteEvent.pitch, rootKey, playbackRate);
+  const vel = (noteEvent.velocity ?? 0.8) * volume;
+  const durSec = Tone.Time(stepsToToneDuration(noteEvent.duration)).toSeconds();
+  track.voicePool.trigger(time, rate, durSec, vel);
+}
+
 /**
  * @param {object} track
  * @param {*} stepValue
@@ -96,21 +121,8 @@ export function triggerTrackSound(track, stepValue, time) {
       } else {
         track.instrument.triggerAttackRelease(duration, time, velocity);
       }
-      return;
     }
-
-    if (track.type === 'melodic') {
-      const duration = preset.duration || '8n';
-      const velocity = preset.velocity ?? 0.8;
-      if (preset.isPolyphonic && Array.isArray(stepValue)) {
-        track.instrument.triggerAttackRelease(stepValue, duration, time, velocity);
-      } else if (typeof stepValue === 'string') {
-        track.instrument.triggerAttackRelease(stepValue, duration, time, velocity);
-      }
-    }
-  } catch {
-    // ignore scheduling glitches
-  }
+  } catch { /* ignore */ }
 }
 
 /**
@@ -136,10 +148,14 @@ export function triggerNoteEvent(track, noteEvent, time) {
  */
 export function triggerClipAtStep(track, step, time, clip) {
   if (track.type === 'melodic') {
-    const notes = (clip.notes || []).filter((n) => n.start === step);
-    notes.forEach((n) => triggerNoteEvent(track, n, time));
+    (clip.notes || []).filter((n) => n.start === step).forEach((n) => triggerNoteEvent(track, n, time));
     return;
   }
+  if (track.type === 'sampleInstrument') {
+    (clip.notes || []).filter((n) => n.start === step).forEach((n) => triggerSampleInstrumentNote(track, n, time));
+    return;
+  }
+  if (track.type === 'audio') return;
   const val = clip.steps?.[step];
   if (val) triggerTrackSound(track, 1, time);
 }

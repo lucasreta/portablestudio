@@ -10,8 +10,12 @@ import {
   saveCurrentAsNew,
   requestAutosave,
   setSessionStatusCallback,
+  setSessionSnapshotProvider,
+  createSessionSnapshot,
 } from '../core/session-service.js';
 import { buildSessionUI } from './session.js';
+import { getTransportSnapshot } from './transport.js';
+import * as state from '../state.js';
 
 function formatDate(ts) {
   if (!ts) return '';
@@ -45,7 +49,13 @@ function renderSessionList() {
   list.querySelectorAll('.load-session-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      await loadSessionById(btn.dataset.id);
+      const transport = await loadSessionById(btn.dataset.id);
+      if (transport) {
+        const bpmEl = document.getElementById('bpm');
+        const masterEl = document.getElementById('masterVol');
+        if (bpmEl) bpmEl.value = String(transport.bpm);
+        if (masterEl) masterEl.value = String(transport.masterVolume);
+      }
       buildSessionUI();
       updateSessionBar();
       renderSessionList();
@@ -86,6 +96,12 @@ export function setupSessionManager() {
       el.classList.toggle('text-zinc-500', status !== 'Saved');
     }
   });
+
+  setSessionSnapshotProvider(() => createSessionSnapshot(
+    state.tracks,
+    getTransportSnapshot(),
+    state.getEditorSnapshot(),
+  ));
 
   updateSessionBar();
 

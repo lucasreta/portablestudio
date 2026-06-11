@@ -3,53 +3,30 @@ import {
   INSTRUMENT_PRESETS, GRID_DIVISIONS, CLIP_LENGTH_BARS_OPTIONS,
 } from '../core/constants.js';
 import { startAudio } from '../core/audio.js';
-import { createTrack, disposeTrack, getPresetIdsByCategory } from '../core/tracks.js';
-import { getMasterGain } from '../core/audio.js';
-import { requestAutosave } from '../core/session-service.js';
-import { createClip, setClipLengthBars, setClipStartStep } from '../core/clips.js';
+import {
+  launchClip,
+  stopTrack,
+  stopAllClips,
+  addTrackFromPreset,
+  removeTrackById,
+  addClipToTrack as addClipToTrackAction,
+  removeClipFromTrack,
+  toggleClipLoop,
+  setClipLength,
+} from '../core/session-actions.js';
+import { setClipLengthBars, setClipStartStep } from '../core/clips.js';
 import { snapStep } from '../core/grid.js';
 import * as state from '../state.js';
-import { openClipEditor } from './midi-editor.js';
+import { openClipEditor, refreshEditorGrid } from './midi-editor.js';
 import { openSampleEditor } from './sample-editor.js';
 import { openEffectsPanel } from './effects-panel.js';
 import { loadSampleFile } from '../core/sample.js';
-
-export function launchClip(trackId, clipId) {
-  const track = state.getTrack(trackId);
-  const clip = state.getClip(trackId, clipId);
-  if (!track || !clip) return;
-
-  if (clip.playing) {
-    clip.playing = false;
-    clip.playStep = 0;
-    track.playingClipId = null;
-  } else {
-    track.clips.forEach((c) => { c.playing = false; c.playStep = 0; });
-    clip.playing = true;
-    clip.playStep = 0;
-    track.playingClipId = clipId;
-  }
-  updateTimelineUI();
-  requestAutosave();
-}
-
-export function stopTrack(trackId) {
-  const track = state.getTrack(trackId);
-  if (!track) return;
-  track.clips.forEach((c) => { c.playing = false; });
-  track.playingClipId = null;
-  updateTimelineUI();
-  requestAutosave();
-}
-
-export function stopAllClips() {
-  state.tracks.forEach((t) => {
-    t.clips.forEach((c) => { c.playing = false; });
-    t.playingClipId = null;
-  });
-  updateTimelineUI();
-  requestAutosave();
-}
+import {
+  startAudioClipPlayback, stopAudioClipPlayback, loadAudioIntoClip,
+} from '../core/audio-clip.js';
+import {
+  startClipRecording, stopClipRecording, isRecording, getRecordingTarget, cancelRecording,
+} from '../core/recorder.js';
 
 function updateTimelineUI() {
   document.querySelectorAll('.timeline-clip').forEach((el) => {
@@ -59,29 +36,9 @@ function updateTimelineUI() {
   });
 }
 
-export function addTrackFromPreset(presetId) {
-  const track = createTrack(getMasterGain(), presetId);
-  state.addTrack(track);
-  buildSessionUI();
-  requestAutosave();
-}
-
-export function removeTrackById(trackId) {
-  const track = state.getTrack(trackId);
-  if (track) disposeTrack(track);
-  state.removeTrack(trackId);
-  buildSessionUI();
-  requestAutosave();
-}
-
 function addClipToTrack(trackId) {
-  const track = state.getTrack(trackId);
-  if (!track) return;
-  const lastEnd = Math.max(0, ...track.clips.map((c) => c.startStep + c.lengthSteps));
-  const clip = createClip(track.type, { startStep: Math.min(lastEnd, TIMELINE_STEPS - STEPS_PER_BAR) });
-  track.clips.push(clip);
-  buildSessionUI();
-  requestAutosave();
+  const clip = addClipToTrackAction(trackId);
+  if (clip) buildSessionUI();
 }
 
 export function buildSessionUI() {
@@ -107,11 +64,18 @@ export function buildSessionUI() {
     row.className = 'timeline-track panel border-l-4 overflow-hidden';
     row.style.borderLeftColor = track.color;
 
-    const sampleRow = track.type === 'sampler'
-      ? `<div class="px-3 py-1 flex flex-wrap gap-2 border-b border-zinc-800">
+    const sampleRow = (track.type === 'sampler' || track.type === 'sampleInstrument')
+      ? `<div class="px-3 py-1 flex flex-wrap gap-2 border-b border-zinc-800 items-center">
           <button class="load-sample-btn text-[10px] py-1 px-2 rounded-lg bg-zinc-800 border border-zinc-700" data-track="${track.id}">📁 Load</button>
           <button class="edit-sample-btn text-[10px] py-1 px-2 rounded-lg bg-zinc-800 border border-zinc-700" data-track="${track.id}" ${track.loadedFileName ? '' : 'disabled'}>✂️ Sample</button>
+          ${track.type === 'sampleInstrument' ? `<span class="text-[9px] text-zinc-600">Root: ${track.sampleSettings?.rootKey || 'C3'} • piano roll = pitch</span>` : ''}
           <span class="text-[10px] text-zinc-500 truncate">${track.loadedFileName || 'No sample'}</span>
+        </div>`
+      : '';
+
+    const audioRow = track.type === 'audio'
+      ? `<div class="px-3 py-1 flex flex-wrap gap-2 border-b border-zinc-800 items-center text-[9px] text-zinc-500">
+          Tap ⏺ on a clip to record • launch clip to hear recording
         </div>`
       : '';
 
@@ -123,7 +87,8 @@ export function buildSessionUI() {
         style="left:${left}%;width:${width}%"
         title="${clip.name} • ${clip.lengthBars} bar(s)${clip.loop ? ' • loop' : ''}">
         <span class="timeline-clip-name">${clip.name}</span>
-        <button type="button" class="clip-edit-btn" data-track="${track.id}" data-clip="${clip.id}">✎</button>
+        ${track.type === 'audio' ? `<button type="button" class="clip-record-btn ${clip.hasRecording ? 'has-audio' : ''}" data-track="${track.id}" data-clip="${clip.id}" title="Record">⏺</button>` : `<button type="button" class="clip-edit-btn" data-track="${track.id}" data-clip="${clip.id}">✎</button>`}
+        <button type="button" class="clip-remove-btn" data-track="${track.id}" data-clip="${clip.id}" title="Remove">✕</button>
         <button type="button" class="clip-loop-btn ${clip.loop ? 'active' : ''}" data-track="${track.id}" data-clip="${clip.id}" title="Loop">↻</button>
         <select class="clip-length-select" data-track="${track.id}" data-clip="${clip.id}">
           ${CLIP_LENGTH_BARS_OPTIONS.map((b) => `<option value="${b}" ${clip.lengthBars === b ? 'selected' : ''}>${b}b</option>`).join('')}
@@ -147,6 +112,7 @@ export function buildSessionUI() {
         </div>
       </div>
       ${sampleRow}
+      ${audioRow}
       <div class="timeline-lane-wrap">
         <div class="timeline-lane" data-track="${track.id}">${clipsHtml}</div>
       </div>`;
@@ -161,9 +127,10 @@ export function buildSessionUI() {
 function bindSessionEvents() {
   document.querySelectorAll('.timeline-clip').forEach((el) => {
     el.addEventListener('click', async (e) => {
-      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle')) return;
+      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle, .clip-record-btn')) return;
       await startAudio();
       launchClip(parseInt(el.dataset.track, 10), parseInt(el.dataset.clip, 10));
+      updateTimelineUI();
     });
   });
 
@@ -177,11 +144,9 @@ function bindSessionEvents() {
   document.querySelectorAll('.clip-loop-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const clip = state.getClip(parseInt(btn.dataset.track, 10), parseInt(btn.dataset.clip, 10));
+      const clip = toggleClipLoop(parseInt(btn.dataset.track, 10), parseInt(btn.dataset.clip, 10));
       if (clip) {
-        clip.loop = !clip.loop;
         btn.classList.toggle('active', clip.loop);
-        requestAutosave();
       }
     });
   });
@@ -189,12 +154,9 @@ function bindSessionEvents() {
   document.querySelectorAll('.clip-length-select').forEach((sel) => {
     sel.addEventListener('change', (e) => {
       e.stopPropagation();
-      const track = state.getTrack(parseInt(sel.dataset.track, 10));
-      const clip = state.getClip(parseInt(sel.dataset.track, 10), parseInt(sel.dataset.clip, 10));
-      if (track && clip) {
-        setClipLengthBars(clip, parseInt(sel.value, 10), track.type);
+      const clip = setClipLength(parseInt(sel.dataset.track, 10), parseInt(sel.dataset.clip, 10), parseInt(sel.value, 10));
+      if (clip) {
         buildSessionUI();
-        requestAutosave();
       }
     });
   });
@@ -210,13 +172,74 @@ function bindSessionEvents() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       stopTrack(parseInt(btn.dataset.track, 10));
+      updateTimelineUI();
     });
   });
 
   document.querySelectorAll('.remove-track-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (confirm('Remove this track?')) removeTrackById(parseInt(btn.dataset.track, 10));
+      if (confirm('Remove this track?')) {
+        removeTrackById(parseInt(btn.dataset.track, 10));
+        buildSessionUI();
+      }
+    });
+  });
+
+  document.querySelectorAll('.clip-remove-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const removed = removeClipFromTrack(parseInt(btn.dataset.track, 10), parseInt(btn.dataset.clip, 10));
+      if (removed) {
+        buildSessionUI();
+      }
+    });
+  });
+
+  document.querySelectorAll('.clip-record-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const trackId = parseInt(btn.dataset.track, 10);
+      const clipId = parseInt(btn.dataset.clip, 10);
+      const track = state.getTrack(trackId);
+      const clip = state.getClip(trackId, clipId);
+      if (!track || track.type !== 'audio' || !clip) return;
+
+      await startAudio();
+
+      if (isRecording() && getRecordingTarget()?.clipId === clipId) {
+        try {
+          btn.classList.remove('recording');
+          btn.textContent = '⏺';
+          const { arrayBuffer } = await stopClipRecording();
+          await loadAudioIntoClip(clip, arrayBuffer, `take-${Date.now()}.webm`);
+          buildSessionUI();
+          requestAutosave();
+        } catch (err) {
+          alert(`Recording failed: ${err.message}`);
+          cancelRecording();
+        }
+        return;
+      }
+
+      if (isRecording()) {
+        alert('Stop the current recording first.');
+        return;
+      }
+
+      try {
+        document.querySelectorAll('.clip-record-btn').forEach((b) => {
+          b.classList.remove('recording');
+          b.textContent = '⏺';
+        });
+        btn.classList.add('recording');
+        btn.textContent = '⏹';
+        await startClipRecording(trackId, clipId);
+      } catch (err) {
+        alert(`Mic access failed: ${err.message}`);
+        btn.classList.remove('recording');
+        btn.textContent = '⏺';
+      }
     });
   });
 
@@ -232,7 +255,11 @@ function bindSessionEvents() {
         const file = ev.target.files?.[0];
         if (!file) return;
         try {
-          await loadSampleFile(state.getTrack(trackId), file);
+          const tr = state.getTrack(trackId);
+          await loadSampleFile(tr, file);
+          if (tr.type === 'sampleInstrument' && !tr.sampleSettings.rootKey) {
+            tr.sampleSettings.rootKey = 'C3';
+          }
           buildSessionUI();
           requestAutosave();
         } catch (err) {
@@ -265,7 +292,7 @@ function bindClipDrag() {
     let origStart = 0;
 
     el.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle')) return;
+      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle, .clip-record-btn')) return;
       dragging = true;
       startX = e.clientX;
       const clip = state.getClip(parseInt(el.dataset.track, 10), parseInt(el.dataset.clip, 10));
@@ -360,6 +387,7 @@ export function setupAddTrackMenu() {
       e.stopPropagation();
       await startAudio();
       addTrackFromPreset(el.dataset.preset);
+      buildSessionUI();
       menu.classList.add('hidden');
     });
   });
@@ -370,7 +398,7 @@ export function setupGridSelector() {
   if (!sel) return;
   sel.innerHTML = GRID_DIVISIONS.map((d) => `<option value="${d}" ${state.gridDivision === d ? 'selected' : ''}>1/${d} bar</option>`).join('');
   sel.addEventListener('change', () => {
-    state.setGridDivision(parseInt(sel.value, 10));
-    requestAutosave();
+    const division = parseInt(sel.value, 10);
+    refreshEditorGrid(division);
   });
 }

@@ -44,7 +44,7 @@ function syncTrimmerFromSliders() {
 
 export function openSampleEditor(trackId) {
   const track = state.getTrack(trackId);
-  if (!track || track.type !== 'sampler' || !track._rawBuffer) return;
+  if (!track || !['sampler', 'sampleInstrument'].includes(track.type) || !track._rawBuffer) return;
 
   editingSampleTrackId = trackId;
   const s = track.sampleSettings;
@@ -56,6 +56,15 @@ export function openSampleEditor(trackId) {
   document.getElementById('sampleEnd').value = s.end;
   document.getElementById('sampleVolume').value = s.volume;
   document.getElementById('sampleReverse').checked = s.reverse;
+
+  const rootWrap = document.getElementById('rootKeyWrap');
+  const rootSel = document.getElementById('sampleRootKey');
+  if (track.type === 'sampleInstrument') {
+    rootWrap.classList.remove('hidden');
+    rootSel.value = s.rootKey || 'C3';
+  } else {
+    rootWrap.classList.add('hidden');
+  }
 
   document.getElementById('sampleModal').classList.remove('hidden');
 
@@ -72,13 +81,18 @@ function closeSampleEditor() {
 }
 
 function readSettingsFromForm() {
-  return {
+  const track = state.getTrack(editingSampleTrackId);
+  const settings = {
     playbackRate: parseFloat(document.getElementById('sampleRate').value) || 1,
     start: parseFloat(document.getElementById('sampleStart').value) || 0,
     end: parseFloat(document.getElementById('sampleEnd').value) || 1,
     volume: parseFloat(document.getElementById('sampleVolume').value) || 1,
     reverse: document.getElementById('sampleReverse').checked,
   };
+  if (track?.type === 'sampleInstrument') {
+    settings.rootKey = document.getElementById('sampleRootKey').value || 'C3';
+  }
+  return settings;
 }
 
 function applyAndPreview() {
@@ -118,6 +132,7 @@ export function setupSampleModal() {
   ['sampleRate', 'sampleVolume'].forEach((id) => {
     document.getElementById(id).addEventListener('input', applyAndPreview);
   });
+  document.getElementById('sampleRootKey')?.addEventListener('change', applyAndPreview);
   document.getElementById('sampleReverse').addEventListener('change', applyAndPreview);
 
   document.getElementById('sampleModal').addEventListener('click', (e) => {

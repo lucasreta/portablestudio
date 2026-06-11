@@ -1,15 +1,18 @@
-import { DEFAULT_BPM } from '../core/constants.js';
+import { DEFAULT_BPM, DEFAULT_MASTER_VOLUME } from '../core/constants.js';
 import { startAudio, setMasterVolume } from '../core/audio.js';
 import { startScheduler, stopScheduler } from '../core/scheduler.js';
-import { stopAllClips } from './session.js';
+import { stopAllClips } from '../core/session-actions.js';
 import { requestAutosave } from '../core/session-service.js';
 import * as state from '../state.js';
+
+let bpmInput = null;
+let masterVol = null;
 
 export function setupTransport() {
   const playBtn = document.getElementById('playBtn');
   const stopBtn = document.getElementById('stopBtn');
-  const bpmInput = document.getElementById('bpm');
-  const masterVol = document.getElementById('masterVol');
+  bpmInput = document.getElementById('bpm');
+  masterVol = document.getElementById('masterVol');
   const stopAllBtn = document.getElementById('stopAllBtn');
 
   playBtn.addEventListener('click', async () => {
@@ -56,4 +59,17 @@ export function setupTransport() {
     }
     if (e.key.toLowerCase() === 's') stopAllClips();
   });
+}
+
+export function getTransportSnapshot() {
+  return {
+    bpm: parseFloat(bpmInput?.value) || DEFAULT_BPM,
+    masterVolume: parseFloat(masterVol?.value) || DEFAULT_MASTER_VOLUME,
+    transportPlaying: typeof Tone !== 'undefined' && Tone.Transport?.state === 'started',
+  };
+}
+
+export function setTransportSnapshot({ bpm, masterVolume }) {
+  if (bpmInput) bpmInput.value = String(bpm ?? DEFAULT_BPM);
+  if (masterVol) masterVol.value = String(masterVolume ?? DEFAULT_BPM);
 }

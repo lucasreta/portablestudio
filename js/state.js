@@ -21,6 +21,19 @@ export function addTrack(track) {
   tracks.push(track);
 }
 
+export function getTracks() {
+  return tracks;
+}
+
+export function getEditorSnapshot() {
+  return {
+    gridDivision,
+    pianoRollOctave,
+    pianoRollScale,
+    pianoRollRoot,
+  };
+}
+
 export function removeTrack(trackId) {
   tracks = tracks.filter((t) => t.id !== trackId);
 }

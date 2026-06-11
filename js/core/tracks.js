@@ -4,6 +4,7 @@ import {
 import { createDefaultClips } from './clips.js';
 import { createInstrument } from './instruments.js';
 import { createEffectsChain } from './effects.js';
+import { createSampleVoicePool } from './sample-voices.js';
 
 let nextTrackId = 0;
 
@@ -33,18 +34,24 @@ export function createTrack(masterGain, presetId) {
     chain,
     instrument: null,
     player: null,
+    voicePool: null,
     sampleSettings: {
       playbackRate: 1,
       start: 0,
       end: 1,
       volume: 1,
       reverse: false,
+      rootKey: preset.rootKey || 'C3',
     },
     loadedFileName: null,
   };
 
   if (preset.type === 'sampler') {
     track.player = new Tone.Player().connect(chain.input);
+  } else if (preset.type === 'sampleInstrument') {
+    track.voicePool = createSampleVoicePool(chain.input);
+  } else if (preset.type === 'audio') {
+    // per-clip players created on demand
   } else {
     track.instrument = createInstrument(presetId, chain.input);
   }
@@ -55,6 +62,8 @@ export function createTrack(masterGain, presetId) {
 export function disposeTrack(track) {
   track.instrument?.dispose();
   track.player?.dispose();
+  track.voicePool?.dispose();
+  track.clips?.forEach((c) => c.player?.dispose());
   Object.values(track.chain?.nodes || {}).forEach((node) => node.dispose?.());
 }
 

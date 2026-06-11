@@ -5,7 +5,7 @@ A lightweight browser-based audio studio designed to run on a phone via [Termux]
 ## Features
 
 - **Arrangement view** — Ableton-style timeline: drag clips, set length (1–8 bars), toggle loop
-- **Add tracks on demand** — kick, snare, hi-hat, tom, clap, piano, bass, synth, sampler
+- **Add tracks on demand** — drums, keys, sampler (steps), **sample instrument** (piano roll + pitch), **audio track** (mic record)
 - **Piano roll** — full note range with octave scroll, scale filter, grid snap (1–16/bar), drag notes and extend length
 - **Step sequencer** — edit drum and sampler trigger patterns
 - **Sampler** — load your own audio files; visual waveform trimmer, pitch, reverse, and volume
@@ -67,6 +67,8 @@ Tests cover pattern logic, constants, and sample math helpers.
 | Add track | **+ Add Track** → pick instrument |
 | Launch clip | Tap a clip slot (not the ✎ button) |
 | Edit pattern | Tap **✎** on a clip — edits without launching it |
+| Record audio | **Audio Track** → ⏺ on a clip (tap again to stop) |
+| Pitched sample | **Sample Instrument** → load sample → ✎ piano roll |
 | Save / load sessions | **Sessions** — autosave is on by default; use **Save As** for named sessions |
 | Load sample | **Load** on a sampler track |
 | Edit sample sound | **Sample** — drag waveform handles to trim, or use sliders |

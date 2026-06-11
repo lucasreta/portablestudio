@@ -17,32 +17,25 @@ import { restoreTracksFromSession, restoreTransportFromSession } from './session
 import * as state from '../state.js';
 
 let statusCallback = () => {};
+let snapshotProvider = null;
 
 export function setSessionStatusCallback(cb) {
   statusCallback = cb;
 }
 
-export function getTransportSnapshot() {
-  const bpmEl = document.getElementById('bpm');
-  const masterEl = document.getElementById('masterVol');
-  return {
-    bpm: parseFloat(bpmEl?.value) || DEFAULT_BPM,
-    masterVolume: parseFloat(masterEl?.value) ?? DEFAULT_MASTER_VOLUME,
-    transportPlaying: typeof Tone !== 'undefined' && Tone.Transport?.state === 'started',
-  };
+export function setSessionSnapshotProvider(provider) {
+  snapshotProvider = provider;
 }
 
-export function getEditorSnapshot() {
-  return {
-    gridDivision: state.gridDivision,
-    pianoRollOctave: state.pianoRollOctave,
-    pianoRollScale: state.pianoRollScale,
-    pianoRollRoot: state.pianoRollRoot,
-  };
+function getSessionSnapshot() {
+  if (!snapshotProvider) {
+    throw new Error('Session snapshot provider is not configured.');
+  }
+  return snapshotProvider();
 }
 
-export function getSessionSnapshot() {
-  return serializeSession(state.tracks, getTransportSnapshot(), getEditorSnapshot());
+export function createSessionSnapshot(tracks, transport, editor = {}) {
+  return serializeSession(tracks, transport, editor);
 }
 
 export function requestAutosave() {
@@ -64,10 +57,6 @@ export async function applySessionData(data) {
   state.setTracks(tracks);
 
   const transport = restoreTransportFromSession(data);
-  const bpmEl = document.getElementById('bpm');
-  const masterEl = document.getElementById('masterVol');
-  if (bpmEl) bpmEl.value = String(transport.bpm);
-  if (masterEl) masterEl.value = String(transport.masterVolume);
   setMasterVolume(transport.masterVolume);
   if (typeof Tone !== 'undefined') Tone.Transport.bpm.value = transport.bpm;
 
@@ -77,21 +66,22 @@ export async function applySessionData(data) {
 export async function loadActiveSession() {
   const id = getActiveSessionId();
   const data = loadSessionData(id);
-  if (data) await applySessionData(data);
+  if (!data) return null;
+  return applySessionData(data);
 }
 
 export async function loadSessionById(id) {
   const data = loadSessionData(id);
-  if (!data) return false;
+  if (!data) return null;
   setActiveSessionId(id);
-  await applySessionData(data);
+  const transport = await applySessionData(data);
   requestAutosave();
-  return true;
+  return transport;
 }
 
-export async function saveCurrentAsNew(name) {
+export async function saveCurrentAsNew(name, snapshot) {
   const id = createSessionId();
-  const data = getSessionSnapshot();
+  const data = snapshot ?? getSessionSnapshot();
   saveSessionData(id, name.trim() || 'Untitled', data);
   statusCallback('Saved');
   return id;

@@ -83,8 +83,20 @@ export const INSTRUMENT_PRESETS = {
     velocity: 0.6,
   },
   sampler: {
-    label: 'Sampler',
+    label: 'Sampler (Steps)',
     type: 'sampler',
+    category: 'audio',
+  },
+  sampleInstrument: {
+    label: 'Sample Instrument',
+    type: 'sampleInstrument',
+    category: 'audio',
+    isPolyphonic: true,
+    rootKey: 'C3',
+  },
+  audio: {
+    label: 'Audio Track',
+    type: 'audio',
     category: 'audio',
   },
 };

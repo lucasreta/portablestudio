@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- Clip remove button on timeline clips.
+- Root-level agent instruction file to ensure future changes are added to `CHANGELOG.md`.
+
+### Changed
+- Tracks now start with a single clip by default.
+- Playing clips are more visibly highlighted in the timeline.
+
+---
+
+## [2.1.0] — 2026-06-10
+
+### Added
+
+- **Audio Track** — Record from the microphone into clips (⏺ on each clip); launch clip to play back.
+- **Sample Instrument** — Ableton-style sampler: load audio, map notes on the piano roll to pitched triggers with note length; root key + fine-tune in sample editor.
+- Polyphonic sample voice pool for overlapping notes.
+- Clip audio stored in `.aps` / autosave per audio clip.
+
+---
+
 ## [2.0.0] — 2026-06-10
 
 ### Added

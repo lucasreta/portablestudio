@@ -37,6 +37,19 @@ body { font-family: 'Inter', system-ui, sans-serif; }
     background: linear-gradient(180deg, #00d26a 0%, #00a854 100%);
     border-color: #00ff88;
     color: #000;
+    box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.2);
+}
+.timeline-clip-playing::after {
+    content: 'PLAYING';
+    position: absolute;
+    right: 8px;
+    top: 6px;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    border-radius: 999px;
 }
 .timeline-clip-name { font-size: 9px; font-weight: 700; flex: 1; truncate; overflow: hidden; white-space: nowrap; }
 .timeline-clip .clip-edit-btn { position: static; width: 20px; height: 20px; font-size: 10px; }
@@ -49,13 +62,44 @@ body { font-family: 'Inter', system-ui, sans-serif; }
     font-size: 8px; background: #1f1f1f; border: 1px solid #444;
     border-radius: 4px; color: #aaa; max-width: 36px;
 }
+.clip-record-btn {
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: #1f1f1f;
+    border: 1px solid #444;
+    color: #f15a29;
+    font-size: 10px;
+    z-index: 2;
+    cursor: pointer;
+}
+.clip-record-btn.recording {
+    background: #ef4444;
+    border-color: #ff6b6b;
+    color: #fff;
+    animation: pulse-rec 0.8s ease infinite;
+}
+.clip-record-btn.has-audio { border-color: #00d26a; color: #00d26a; }
+.clip-remove-btn {
+    width: 20px; height: 20px; border-radius: 6px; background: #1f1f1f;
+    border: 1px solid #444; color: #f87171; font-size: 10px; cursor: pointer;
+}
+.clip-remove-btn:hover {
+    background: #2e1414; border-color: #f87171;
+}
+@keyframes pulse-rec {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
 .clip-resize-handle {
     position: absolute; right: 0; top: 0; bottom: 0; width: 8px;
     cursor: ew-resize; background: rgba(0,255,136,0.3); border-radius: 0 6px 6px 0;
 }
 .piano-roll-canvas { display: block; background: #141414; border-radius: 8px; border: 1px solid #333; }
-.step-cell-bar { border-left: 2px solid #555 !important; }
-
 .clip-slot {
     transition: all 0.1s ease;
     min-height: 54px;
@@ -143,31 +187,52 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 .roll-cell:hover { background: #3a3a3a; }
 
 .step-sequencer {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     padding: 4px;
 }
+.step-seq-bar-label {
+    font-size: 9px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-left: 2px;
+}
+.step-seq-bar {
+    display: grid;
+    gap: 6px;
+}
 .step-cell {
-    background: #2a2a2a;
     border: 2px solid #333;
-    border-radius: 12px;
-    min-height: 48px;
+    border-radius: 10px;
+    min-height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: #666;
+    font-size: 13px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.08s ease;
+    user-select: none;
+}
+.step-cell-black {
+    background: #1a1a1a;
+    color: #777;
+    border-color: #2a2a2a;
+}
+.step-cell-white {
+    background: #3d3d3d;
+    color: #bbb;
+    border-color: #555;
 }
 .step-cell.active {
     background: #00d26a;
     border-color: #00ff88;
     color: #000;
 }
-.step-cell:hover { background: #3a3a3a; }
+.step-cell-black:hover:not(.active) { background: #252525; }
+.step-cell-white:hover:not(.active) { background: #4a4a4a; }
 
 .modal-overlay {
     position: fixed;
