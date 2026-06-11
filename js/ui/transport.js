@@ -1,7 +1,7 @@
 import { DEFAULT_BPM, DEFAULT_MASTER_VOLUME } from '../core/constants.js';
 import { startAudio, setMasterVolume } from '../core/audio.js';
 import { startScheduler, stopScheduler } from '../core/scheduler.js';
-import { stopAllClips } from '../core/session-actions.js';
+import { stopAllClips } from '/js/core/session-actions.js';
 import { requestAutosave } from '../core/session-service.js';
 import * as state from '../state.js';
 

@@ -6,12 +6,10 @@ import {
 } from '../core/audio-export.js';
 import { exportSessionToAps, parseApsFile } from '../core/aps-file.js';
 import {
-  getSessionSnapshot,
-  getTransportSnapshot,
-  getEditorSnapshot,
   applySessionData,
   requestAutosave,
 } from '../core/session-service.js';
+import { getTransportSnapshot } from './transport.js';
 import { buildSessionUI } from './session.js';
 import { updateSessionBar } from './session-manager.js';
 import * as state from '../state.js';
@@ -50,7 +48,7 @@ async function exportAudio(format) {
 
 function exportAps() {
   const name = document.getElementById('exportApsName')?.value.trim() || 'session';
-  exportSessionToAps(state.tracks, getTransportSnapshot(), getEditorSnapshot(), name);
+  exportSessionToAps(state.tracks, getTransportSnapshot(), state.getEditorSnapshot(), name);
   document.getElementById('exportStatus').textContent = 'Saved .aps file';
   setTimeout(() => { document.getElementById('exportStatus').textContent = ''; }, 2500);
 }

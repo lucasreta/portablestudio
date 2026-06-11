@@ -224,6 +224,7 @@ export class PianoRollEditor {
       const origCol = this._stepToCol(this.drag.ox);
       const newCol = Math.max(0, Math.min(this.gridCells.length - 1, origCol + dx));
       const newStart = this.gridCells[newCol].startStep;
+      this.drag.moved = this.drag.moved || Math.abs(p.x - this.drag.startX) > 2 || Math.abs(p.y - this.drag.startY) > 2;
       this.clip.notes = updateNote(this.clip.notes, this.drag.note.id, {
         start: snapStep(newStart, this.division),
         pitch: notes[ni],
@@ -233,9 +234,16 @@ export class PianoRollEditor {
     }
   }
 
-  _up() {
-    if (!this.drag) return;
+  _up(e) {
+    if (!this.drag || !this.clip) return;
+    const p = this._pos(e);
     if (this.drag.type === 'add') {
+      const finalCol = Math.max(
+        this.drag.col,
+        Math.min(this.gridCells.length - 1, Math.floor((p.x - NOTE_COL) / COL_W)),
+      );
+      const endStep = this.gridCells[finalCol].startStep + this.gridCells[finalCol].cellSize;
+      const duration = Math.max(this.cellSize, endStep - this.drag.step);
       const existing = (this.clip.notes || []).find(
         (n) => n.pitch === this.drag.pitch && n.start === this.drag.step,
       );
@@ -246,11 +254,17 @@ export class PianoRollEditor {
           this.clip.notes || [],
           this.drag.pitch,
           this.drag.step,
-          this.cellSize,
+          duration,
         );
       }
       this.draw();
       this.onChange();
+    } else if (this.drag.type === 'move') {
+      if (!this.drag.moved) {
+        this.clip.notes = removeNote(this.clip.notes, this.drag.note.id);
+        this.draw();
+        this.onChange();
+      }
     }
     this.drag = null;
   }

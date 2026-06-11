@@ -14,8 +14,10 @@ import {
   toggleClipLoop,
   setClipLength,
 } from '../core/session-actions.js';
+import { requestAutosave } from '../core/session-service.js';
 import { setClipLengthBars, setClipStartStep } from '../core/clips.js';
 import { snapStep } from '../core/grid.js';
+import { getPresetIdsByCategory } from '../core/tracks.js';
 import * as state from '../state.js';
 import { openClipEditor, refreshEditorGrid } from './midi-editor.js';
 import { openSampleEditor } from './sample-editor.js';
@@ -127,7 +129,7 @@ export function buildSessionUI() {
 function bindSessionEvents() {
   document.querySelectorAll('.timeline-clip').forEach((el) => {
     el.addEventListener('click', async (e) => {
-      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle, .clip-record-btn')) return;
+      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle, .clip-record-btn, .clip-remove-btn')) return;
       await startAudio();
       launchClip(parseInt(el.dataset.track, 10), parseInt(el.dataset.clip, 10));
       updateTimelineUI();
@@ -192,6 +194,7 @@ function bindSessionEvents() {
       const removed = removeClipFromTrack(parseInt(btn.dataset.track, 10), parseInt(btn.dataset.clip, 10));
       if (removed) {
         buildSessionUI();
+        requestAutosave();
       }
     });
   });
@@ -292,7 +295,7 @@ function bindClipDrag() {
     let origStart = 0;
 
     el.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle, .clip-record-btn')) return;
+      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle, .clip-record-btn, .clip-remove-btn')) return;
       dragging = true;
       startX = e.clientX;
       const clip = state.getClip(parseInt(el.dataset.track, 10), parseInt(el.dataset.clip, 10));
