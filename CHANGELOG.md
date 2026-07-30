@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Tracks now start with a single clip by default.
 - Playing clips are more visibly highlighted in the timeline.
 
+### Fixed
+- Piano roll note add/remove/move/resize on mobile: larger touch targets, tap-to-remove, drag threshold to ignore finger jitter, and `touch-action` so the modal no longer steals gestures.
+
 ---
 
 ## [2.1.0] — 2026-06-10
