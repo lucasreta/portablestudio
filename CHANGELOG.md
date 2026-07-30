@@ -16,6 +16,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Tracks now start with a single clip by default.
 - Playing clips are more visibly highlighted in the timeline.
 
+### Fixed
+- App boot failure from invalid export UI imports (`getSessionSnapshot` / transport / editor snapshots).
+- Missing imports that broke Add Track and autosave after recording or sample load.
+- Audio clips can be toggled off by clicking the same clip again.
+- Dragging a timeline clip no longer also launches it.
+- Resizing a clip no longer permanently deletes notes/steps until the drag is released.
+- Scheduler follows the live track list after tracks are added or removed.
+- Transport Stop also stops independent audio clip players.
+- STOP ALL and the `S` shortcut refresh clip playing highlights.
+- Space / `S` shortcuts ignore keystrokes while typing in text fields.
+- Sample Instrument Preview triggers the pitched voice pool instead of a no-op player.
+- Clip editor Save preserves live playhead / playback state; draft note edits no longer autosave stale data.
+- APS import syncs BPM and master volume controls in the UI.
+- Master volume restore uses the correct default when snapshot values are missing.
+- Sharp/flat note names convert correctly for sample pitch mapping.
+- Legacy v1 drum patterns pad to a full bar of steps on migration.
+
 ---
 
 ## [2.1.0] — 2026-06-10

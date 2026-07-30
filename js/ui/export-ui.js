@@ -6,15 +6,22 @@ import {
 } from '../core/audio-export.js';
 import { exportSessionToAps, parseApsFile } from '../core/aps-file.js';
 import {
-  getSessionSnapshot,
-  getTransportSnapshot,
-  getEditorSnapshot,
   applySessionData,
   requestAutosave,
 } from '../core/session-service.js';
+import { getTransportSnapshot } from './transport.js';
+import { getEditorSnapshot } from '../state.js';
 import { buildSessionUI } from './session.js';
 import { updateSessionBar } from './session-manager.js';
 import * as state from '../state.js';
+
+function syncTransportControls(transport) {
+  if (!transport) return;
+  const bpmEl = document.getElementById('bpm');
+  const masterEl = document.getElementById('masterVol');
+  if (bpmEl) bpmEl.value = String(transport.bpm);
+  if (masterEl) masterEl.value = String(transport.masterVolume);
+}
 
 export function setupExportUI() {
   document.getElementById('exportMp3Btn').addEventListener('click', () => exportAudio('mp3'));
@@ -60,7 +67,8 @@ async function importAps(e) {
   if (!file) return;
   try {
     const data = await parseApsFile(file);
-    await applySessionData(data);
+    const transport = await applySessionData(data);
+    syncTransportControls(transport);
     buildSessionUI();
     updateSessionBar();
     requestAutosave();

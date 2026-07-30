@@ -90,7 +90,9 @@ describe('session-serialize', () => {
 
     const normalized = normalizeSessionData(legacy);
     expect(normalized.tracks[0].clips).toHaveLength(2);
-    expect(normalized.tracks[0].clips[0].steps).toEqual([1, 0, 1, 0]);
+    expect(normalized.tracks[0].clips[0].steps).toHaveLength(16);
+    expect(normalized.tracks[0].clips[0].steps.slice(0, 4)).toEqual([1, 0, 1, 0]);
+    expect(normalized.tracks[0].clips[0].steps.slice(4).every((s) => s === 0)).toBe(true);
     expect(normalized.tracks[0].playingClipId).toBe(1);
   });
 });

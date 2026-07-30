@@ -2,11 +2,49 @@ import { DEFAULT_BPM, DEFAULT_MASTER_VOLUME } from '../core/constants.js';
 import { startAudio, setMasterVolume } from '../core/audio.js';
 import { startScheduler, stopScheduler } from '../core/scheduler.js';
 import { stopAllClips } from '../core/session-actions.js';
+import { stopAudioClipPlayback } from '../core/audio-clip.js';
 import { requestAutosave } from '../core/session-service.js';
+import { updateTimelineUI } from './session.js';
 import * as state from '../state.js';
 
 let bpmInput = null;
 let masterVol = null;
+
+function isTypingTarget(target) {
+  if (!target || !(target instanceof Element)) return false;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+}
+
+/** Stop independent audio clip players (they are not driven by the scheduler). */
+function stopPlayingAudioClips() {
+  state.getTracks().forEach((track) => {
+    if (track.type !== 'audio') return;
+    track.clips?.forEach((clip) => {
+      stopAudioClipPlayback(clip);
+      clip.playing = false;
+    });
+    track.playingClipId = null;
+  });
+}
+
+function stopTransport() {
+  Tone.Transport.stop();
+  stopScheduler();
+  stopPlayingAudioClips();
+  updateTimelineUI();
+  requestAutosave();
+}
+
+async function startTransport() {
+  await startAudio();
+  Tone.Transport.bpm.value = parseFloat(bpmInput.value) || DEFAULT_BPM;
+  if (Tone.Transport.state !== 'started') {
+    Tone.Transport.start();
+    startScheduler(state.tracks);
+  }
+  requestAutosave();
+}
 
 export function setupTransport() {
   const playBtn = document.getElementById('playBtn');
@@ -15,21 +53,9 @@ export function setupTransport() {
   masterVol = document.getElementById('masterVol');
   const stopAllBtn = document.getElementById('stopAllBtn');
 
-  playBtn.addEventListener('click', async () => {
-    await startAudio();
-    Tone.Transport.bpm.value = parseFloat(bpmInput.value) || DEFAULT_BPM;
-    if (Tone.Transport.state !== 'started') {
-      Tone.Transport.start();
-      startScheduler(state.tracks);
-    }
-    requestAutosave();
-  });
+  playBtn.addEventListener('click', () => startTransport());
 
-  stopBtn.addEventListener('click', () => {
-    Tone.Transport.stop();
-    stopScheduler();
-    requestAutosave();
-  });
+  stopBtn.addEventListener('click', () => stopTransport());
 
   bpmInput.addEventListener('change', () => {
     Tone.Transport.bpm.value = parseFloat(bpmInput.value) || DEFAULT_BPM;
@@ -41,23 +67,25 @@ export function setupTransport() {
     requestAutosave();
   });
 
-  stopAllBtn.addEventListener('click', stopAllClips);
+  stopAllBtn.addEventListener('click', () => {
+    stopAllClips();
+    updateTimelineUI();
+  });
 
   document.addEventListener('keydown', async (e) => {
+    if (isTypingTarget(e.target)) return;
     if (e.key === ' ') {
       e.preventDefault();
-      await startAudio();
       if (Tone.Transport.state === 'started') {
-        Tone.Transport.stop();
-        stopScheduler();
+        stopTransport();
       } else {
-        Tone.Transport.bpm.value = parseFloat(bpmInput.value) || DEFAULT_BPM;
-        Tone.Transport.start();
-        startScheduler(state.tracks);
+        await startTransport();
       }
-      requestAutosave();
     }
-    if (e.key.toLowerCase() === 's') stopAllClips();
+    if (e.key.toLowerCase() === 's') {
+      stopAllClips();
+      updateTimelineUI();
+    }
   });
 }
 
@@ -71,5 +99,5 @@ export function getTransportSnapshot() {
 
 export function setTransportSnapshot({ bpm, masterVolume }) {
   if (bpmInput) bpmInput.value = String(bpm ?? DEFAULT_BPM);
-  if (masterVol) masterVol.value = String(masterVolume ?? DEFAULT_BPM);
+  if (masterVol) masterVol.value = String(masterVolume ?? DEFAULT_MASTER_VOLUME);
 }

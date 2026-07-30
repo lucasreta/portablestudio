@@ -1,15 +1,16 @@
 import { triggerClipAtStep } from './instruments.js';
+import * as state from '../state.js';
 
 /** @type {number | null} */
 let schedulerId = null;
 
 /**
- * @param {object[]} tracks
+ * @param {object[]} [_tracks] Unused; scheduler always reads live tracks from state.
  */
-export function startScheduler(tracks) {
+export function startScheduler(_tracks) {
   if (schedulerId !== null) return;
   schedulerId = Tone.Transport.scheduleRepeat((time) => {
-    tracks.forEach((track) => {
+    state.getTracks().forEach((track) => {
       const clip = track.clips?.find((c) => c.id === track.playingClipId && c.playing);
       if (!clip) return;
 

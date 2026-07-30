@@ -12,13 +12,13 @@ export function launchClip(trackId, clipId) {
   if (!track || !clip) return null;
 
   if (track.type === 'audio') {
+    const wasPlaying = clip.playing;
     track.clips.forEach((c) => {
       c.playing = false;
       stopAudioClipPlayback(c);
     });
 
-    if (clip.playing) {
-      clip.playing = false;
+    if (wasPlaying) {
       track.playingClipId = null;
     } else {
       clip.playing = true;
