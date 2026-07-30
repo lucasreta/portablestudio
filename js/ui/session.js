@@ -6,7 +6,6 @@ import { startAudio } from '../core/audio.js';
 import {
   launchClip,
   stopTrack,
-  stopAllClips,
   addTrackFromPreset,
   removeTrackById,
   addClipToTrack as addClipToTrackAction,
@@ -16,19 +15,23 @@ import {
 } from '../core/session-actions.js';
 import { setClipLengthBars, setClipStartStep } from '../core/clips.js';
 import { snapStep } from '../core/grid.js';
+import { getPresetIdsByCategory } from '../core/tracks.js';
+import { requestAutosave } from '../core/session-service.js';
 import * as state from '../state.js';
 import { openClipEditor, refreshEditorGrid } from './midi-editor.js';
 import { openSampleEditor } from './sample-editor.js';
 import { openEffectsPanel } from './effects-panel.js';
 import { loadSampleFile } from '../core/sample.js';
-import {
-  startAudioClipPlayback, stopAudioClipPlayback, loadAudioIntoClip,
-} from '../core/audio-clip.js';
+import { loadAudioIntoClip } from '../core/audio-clip.js';
 import {
   startClipRecording, stopClipRecording, isRecording, getRecordingTarget, cancelRecording,
 } from '../core/recorder.js';
 
-function updateTimelineUI() {
+const CLIP_CONTROL_SELECTOR =
+  '.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle, .clip-record-btn, .clip-remove-btn';
+const DRAG_CLICK_THRESHOLD_PX = 6;
+
+export function updateTimelineUI() {
   document.querySelectorAll('.timeline-clip').forEach((el) => {
     const track = state.getTrack(parseInt(el.dataset.track, 10));
     const clip = track?.clips?.find((c) => c.id === parseInt(el.dataset.clip, 10));
@@ -127,7 +130,11 @@ export function buildSessionUI() {
 function bindSessionEvents() {
   document.querySelectorAll('.timeline-clip').forEach((el) => {
     el.addEventListener('click', async (e) => {
-      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle, .clip-record-btn')) return;
+      if (e.target.closest(CLIP_CONTROL_SELECTOR)) return;
+      if (el.dataset.suppressClick === '1') {
+        delete el.dataset.suppressClick;
+        return;
+      }
       await startAudio();
       launchClip(parseInt(el.dataset.track, 10), parseInt(el.dataset.clip, 10));
       updateTimelineUI();
@@ -288,12 +295,14 @@ function bindSessionEvents() {
 function bindClipDrag() {
   document.querySelectorAll('.timeline-clip').forEach((el) => {
     let dragging = false;
+    let moved = false;
     let startX = 0;
     let origStart = 0;
 
     el.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.clip-edit-btn, .clip-loop-btn, .clip-length-select, .clip-resize-handle, .clip-record-btn')) return;
+      if (e.target.closest(CLIP_CONTROL_SELECTOR)) return;
       dragging = true;
+      moved = false;
       startX = e.clientX;
       const clip = state.getClip(parseInt(el.dataset.track, 10), parseInt(el.dataset.clip, 10));
       origStart = clip?.startStep ?? 0;
@@ -303,6 +312,7 @@ function bindClipDrag() {
 
     el.addEventListener('pointermove', (e) => {
       if (!dragging) return;
+      if (Math.abs(e.clientX - startX) >= DRAG_CLICK_THRESHOLD_PX) moved = true;
       const lane = el.parentElement;
       const laneW = lane.getBoundingClientRect().width;
       const dx = e.clientX - startX;
@@ -314,8 +324,10 @@ function bindClipDrag() {
     });
 
     el.addEventListener('pointerup', () => {
-      if (dragging) {
-        dragging = false;
+      if (!dragging) return;
+      dragging = false;
+      if (moved) {
+        el.dataset.suppressClick = '1';
         requestAutosave();
       }
     });
@@ -334,22 +346,23 @@ function bindClipResize() {
       const lane = el.parentElement;
       const startX = e.clientX;
       const origBars = clip.lengthBars;
+      let previewBars = origBars;
 
       const onMove = (ev) => {
         const laneW = lane.getBoundingClientRect().width;
         const dx = ev.clientX - startX;
         const dBars = Math.round((dx / laneW) * TIMELINE_BARS);
-        const newBars = CLIP_LENGTH_BARS_OPTIONS.reduce((best, b) => {
+        previewBars = CLIP_LENGTH_BARS_OPTIONS.reduce((best, b) => {
           const target = Math.max(1, origBars + dBars);
           return Math.abs(b - target) < Math.abs(best - target) ? b : best;
         }, origBars);
-        setClipLengthBars(clip, newBars, track.type);
-        el.style.width = `${(clip.lengthSteps / TIMELINE_STEPS) * 100}%`;
+        el.style.width = `${((previewBars * STEPS_PER_BAR) / TIMELINE_STEPS) * 100}%`;
       };
 
       const onUp = () => {
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
+        setClipLengthBars(clip, previewBars, track.type);
         buildSessionUI();
         requestAutosave();
       };

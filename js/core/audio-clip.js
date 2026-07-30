@@ -1,5 +1,3 @@
-import { applySampleSettings } from './sample.js';
-
 /**
  * @param {object} clip
  * @param {import('tone').InputNode} destination

@@ -14,8 +14,9 @@ let pianoRoll = null;
 
 function getPianoRoll() {
   if (!pianoRoll) {
+    // Draft edits are not persisted until Save; avoid autosaving stale track data.
     pianoRoll = new PianoRollEditor(document.getElementById('pianoRollCanvas'), {
-      onChange: () => requestAutosave(),
+      onChange: () => {},
     });
   }
   return pianoRoll;
@@ -134,7 +135,6 @@ function renderStepSequencer(track) {
         cell.cellSize,
       );
       el.classList.toggle('active');
-      requestAutosave();
     });
 
     barRow.appendChild(el);
@@ -145,7 +145,19 @@ function saveChanges() {
   const track = state.getTrack(state.editingTrackId);
   const idx = track?.clips?.findIndex((c) => c.id === state.editingClipId);
   if (!track || idx < 0 || !state.editingClip) return;
-  track.clips[idx] = { ...state.editingClip, id: state.editingClipId };
+  const live = track.clips[idx];
+  // Merge musical edits onto the live clip; keep runtime playback / audio fields.
+  track.clips[idx] = {
+    ...live,
+    name: state.editingClip.name,
+    startStep: state.editingClip.startStep,
+    lengthBars: state.editingClip.lengthBars,
+    lengthSteps: state.editingClip.lengthSteps,
+    loop: state.editingClip.loop,
+    steps: state.editingClip.steps,
+    notes: state.editingClip.notes,
+    id: state.editingClipId,
+  };
   closeMidiModal();
   requestAutosave();
 }

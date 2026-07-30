@@ -1,10 +1,9 @@
 import {
   SESSION_VERSION, APS_FORMAT, APS_FORMAT_VERSION,
-  DEFAULT_GRID_DIVISION,
+  DEFAULT_GRID_DIVISION, STEPS_PER_BAR,
 } from './constants.js';
 import { createDefaultClips } from './clips.js';
 import { patternToNotes } from './note-events.js';
-import { STEPS_PER_BAR } from './constants.js';
 
 export { SESSION_VERSION };
 
@@ -102,7 +101,8 @@ export function migrateTrackV1(t) {
       if (type === 'melodic') {
         clip.notes = patternToNotes(pattern, t.isPolyphonic);
       } else {
-        clip.steps = pattern.map((s) => (s ? 1 : 0));
+        const mapped = pattern.map((s) => (s ? 1 : 0));
+        clip.steps = Array.from({ length: STEPS_PER_BAR }, (_, i) => mapped[i] || 0);
       }
       clips.push(clip);
     });
