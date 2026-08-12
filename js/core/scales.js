@@ -19,17 +19,27 @@ export function midiToNoteName(midi) {
   return `${name}${octave}`;
 }
 
+const ENHARMONIC = {
+  Db: 'C#',
+  'D#': 'Eb',
+  Eb: 'Eb',
+  Gb: 'F#',
+  'G#': 'Ab',
+  Ab: 'Ab',
+  'A#': 'Bb',
+  Bb: 'Bb',
+};
+
 /**
- * @param {string} noteName e.g. C4, Eb3
+ * @param {string} noteName e.g. C4, Eb3, D#3
  * @returns {number}
  */
 export function noteNameToMidi(noteName) {
-  const m = noteName.match(/^([A-G][#b]?)(-?\d+)$/);
+  const m = String(noteName || '').match(/^([A-G][#b]?)(-?\d+)$/);
   if (!m) return 60;
-  const idx = NOTE_NAMES.indexOf(m[1].replace('b', 'b'));
-  const alt = { Db: 'C#', Eb: 'Eb', Gb: 'F#', Ab: 'Ab', Bb: 'Bb' };
-  const name = alt[m[1]] || m[1];
+  const name = ENHARMONIC[m[1]] || m[1];
   const noteIdx = NOTE_NAMES.indexOf(name);
+  if (noteIdx < 0) return 60;
   const octave = parseInt(m[2], 10);
   return (octave + 1) * 12 + noteIdx;
 }
@@ -43,9 +53,8 @@ export function noteNameToMidi(noteName) {
  */
 export function getVisibleNotes(lowMidi, highMidi, scaleId = 'chromatic', root = 'C') {
   const scale = SCALE_PRESETS[scaleId] || SCALE_PRESETS.chromatic;
-  const rootIdx = NOTE_NAMES.indexOf(root.replace('b', 'b')) >= 0
-    ? NOTE_NAMES.indexOf(root)
-    : 0;
+  const rootName = ENHARMONIC[root] || root;
+  const rootIdx = NOTE_NAMES.indexOf(rootName) >= 0 ? NOTE_NAMES.indexOf(rootName) : 0;
   const notes = [];
   for (let midi = highMidi; midi >= lowMidi; midi--) {
     const pc = ((midi % 12) + 12) % 12;

@@ -12,6 +12,7 @@ import {
 } from './session-serialize.js';
 import { setTrackIdCounter } from './tracks.js';
 import { setClipIdCounter } from './clips.js';
+import { ensureArrangementClip } from './arrangement.js';
 import * as state from '../state.js';
 
 export async function restoreTracksFromSession(masterGain, data) {
@@ -100,6 +101,7 @@ export async function restoreTracksFromSession(masterGain, data) {
     }
 
     updateEffectsChain(chain, effects);
+    ensureArrangementClip(track);
     tracks.push(track);
     if (t.id > maxTrackId) maxTrackId = t.id;
   }

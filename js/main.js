@@ -1,7 +1,7 @@
 import { getMasterGain, setMasterVolume } from './core/audio.js';
 import { DEFAULT_MASTER_VOLUME } from './core/constants.js';
 import { initSessionService, loadActiveSession } from './core/session-service.js';
-import { buildSessionUI, setupAddTrackMenu, setupGridSelector } from './ui/session.js';
+import { buildSessionUI, setupAddTrackMenu, setupGridSelector, setupArrangementPlayhead } from './ui/session.js';
 import { setupTransport } from './ui/transport.js';
 import { setupMidiModal, bindClipEditOnLongPress } from './ui/midi-editor.js';
 import { setupSampleModal } from './ui/sample-editor.js';
@@ -15,6 +15,7 @@ async function init() {
   setupSessionManager();
   setupAddTrackMenu();
   setupGridSelector();
+  setupArrangementPlayhead();
   setupTransport();
   setupMidiModal();
   setupSampleModal();

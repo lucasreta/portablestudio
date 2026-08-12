@@ -11,10 +11,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - Clip remove button on timeline clips.
 - Root-level agent instruction file to ensure future changes are added to `CHANGELOG.md`.
+- Arrangement-style track lanes that show notes, drum hits, and audio regions on the timeline.
 
 ### Changed
-- Tracks now start with a single clip by default.
+- Tracks now start with a single full-timeline arrangement clip by default.
 - Playing clips are more visibly highlighted in the timeline.
+- Transport playback follows the arrangement timeline with a moving playhead (Ableton arrangement-style), instead of launching clip blocks.
+- Track UI removes clip chrome (+ Clip / loop / length cards); Edit opens the piano roll or step editor for the arrangement.
+
+### Fixed
+- Piano roll note add/remove/move/resize on mobile: larger touch targets, tap-to-remove, drag threshold for finger jitter, and touch-action so the modal no longer steals gestures.
+- App boot failure from invalid export UI imports.
+- Sharp/flat note names convert correctly for arrangement pitch placement and sample pitch mapping.
 
 ---
 
