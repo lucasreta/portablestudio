@@ -13,6 +13,13 @@ describe('clips', () => {
     expect(clip.notes).toEqual([]);
   });
 
+  it('defaults new clips to the full timeline arrangement length', () => {
+    const clip = createClip('drum');
+    expect(clip.lengthBars).toBe(8);
+    expect(clip.loop).toBe(false);
+    expect(clip.name).toBe('Arrangement');
+  });
+
   it('resizes clip in bars', () => {
     const clip = createClip('drum');
     setClipLengthBars(clip, 4, 'drum');

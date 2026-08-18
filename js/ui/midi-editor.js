@@ -3,8 +3,9 @@ import { clearSteps } from '../core/patterns.js';
 import { triggerClipAtStep } from '../core/instruments.js';
 import { getScaleOptions } from '../core/scales.js';
 import {
-  getGridCells, toggleGridCell, isGridCellActive, usesBlackKeyStyle, stepsPerGridCell,
+  getGridCells, toggleGridCell, isGridCellActive, usesBlackKeyStyle,
 } from '../core/grid.js';
+import { ensureArrangementClip } from '../core/arrangement.js';
 import { requestAutosave } from '../core/session-service.js';
 import { PianoRollEditor } from './piano-roll.js';
 import * as state from '../state.js';
@@ -14,11 +15,24 @@ let pianoRoll = null;
 
 function getPianoRoll() {
   if (!pianoRoll) {
+    // Draft edits persist on Save; avoid autosaving stale track data mid-edit.
     pianoRoll = new PianoRollEditor(document.getElementById('pianoRollCanvas'), {
-      onChange: () => requestAutosave(),
+      onChange: () => {},
     });
   }
   return pianoRoll;
+}
+
+function notifyArrangementChanged() {
+  document.dispatchEvent(new CustomEvent('studio:arrangement-changed'));
+}
+
+/** Open the arrangement editor for a track (full-timeline clip). */
+export function openTrackEditor(trackId) {
+  const track = state.getTrack(trackId);
+  if (!track || track.type === 'audio') return;
+  const clip = ensureArrangementClip(track);
+  openClipEditor(trackId, clip.id);
 }
 
 export function openClipEditor(trackId, clipId) {
@@ -32,7 +46,7 @@ export function openClipEditor(trackId, clipId) {
 
   document.getElementById('modalTrackName').textContent = track.name;
   document.getElementById('modalClipInfo').textContent =
-    `${clip.name} • ${clip.lengthBars} bar(s) • ${clip.loop ? 'loops' : 'one-shot'}`;
+    `Arrangement • ${clip.lengthBars} bars • tap to add/remove • drag edge to lengthen`;
 
   setupEditorToolbar(track);
   document.getElementById('midiModal').classList.remove('hidden');
@@ -134,7 +148,6 @@ function renderStepSequencer(track) {
         cell.cellSize,
       );
       el.classList.toggle('active');
-      requestAutosave();
     });
 
     barRow.appendChild(el);
@@ -145,8 +158,20 @@ function saveChanges() {
   const track = state.getTrack(state.editingTrackId);
   const idx = track?.clips?.findIndex((c) => c.id === state.editingClipId);
   if (!track || idx < 0 || !state.editingClip) return;
-  track.clips[idx] = { ...state.editingClip, id: state.editingClipId };
+  const live = track.clips[idx];
+  track.clips[idx] = {
+    ...live,
+    name: state.editingClip.name,
+    startStep: state.editingClip.startStep,
+    lengthBars: state.editingClip.lengthBars,
+    lengthSteps: state.editingClip.lengthSteps,
+    loop: state.editingClip.loop,
+    steps: state.editingClip.steps,
+    notes: state.editingClip.notes,
+    id: state.editingClipId,
+  };
   closeMidiModal();
+  notifyArrangementChanged();
   requestAutosave();
 }
 
@@ -193,10 +218,10 @@ export function setupMidiModal() {
 
 export function bindClipEditOnLongPress() {
   document.getElementById('tracksContainer').addEventListener('contextmenu', (e) => {
-    const clip = e.target.closest('.timeline-clip');
-    if (!clip) return;
+    const lane = e.target.closest('.arrangement-lane');
+    if (!lane) return;
     e.preventDefault();
-    openClipEditor(parseInt(clip.dataset.track, 10), parseInt(clip.dataset.clip, 10));
+    openTrackEditor(parseInt(lane.dataset.track, 10));
   });
 }
 

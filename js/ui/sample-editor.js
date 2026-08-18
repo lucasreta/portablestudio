@@ -1,5 +1,6 @@
 import { applySampleSettings } from '../core/sample.js';
 import { startAudio } from '../core/audio.js';
+import { triggerSampleInstrumentNote } from '../core/instruments.js';
 import { WaveformTrimmer } from './waveform-trimmer.js';
 import { requestAutosave } from '../core/session-service.js';
 import * as state from '../state.js';
@@ -106,6 +107,12 @@ async function previewSample() {
   await startAudio();
   applyAndPreview();
   const track = state.getTrack(editingSampleTrackId);
+  if (!track) return;
+  if (track.type === 'sampleInstrument') {
+    const pitch = track.sampleSettings?.rootKey || 'C3';
+    triggerSampleInstrumentNote(track, { pitch, duration: 8, velocity: 0.9 }, Tone.now());
+    return;
+  }
   if (track?.player?.loaded) track.player.start();
 }
 

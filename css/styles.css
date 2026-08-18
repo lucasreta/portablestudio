@@ -9,97 +9,73 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 .timeline-bar-label { border-left: 1px solid #333; }
 .timeline-track { min-width: 100%; }
 .timeline-lane-wrap { overflow-x: auto; padding: 8px; }
-.timeline-lane {
+.arrangement-lane {
     position: relative;
-    height: 56px;
+    height: 72px;
     min-width: 100%;
-    background: repeating-linear-gradient(90deg, #1a1a1a 0, #1a1a1a calc(12.5% - 1px), #222 calc(12.5% - 1px), #222 12.5%);
+    background: repeating-linear-gradient(90deg, #141414 0, #141414 calc(12.5% - 1px), #1c1c1c calc(12.5% - 1px), #1c1c1c 12.5%);
     border-radius: 8px;
     border: 1px solid #333;
-}
-.timeline-clip {
-    position: absolute;
-    top: 6px;
-    bottom: 6px;
-    background: linear-gradient(180deg, #2d4a3e 0%, #1e3a2f 100%);
-    border: 2px solid #00d26a;
-    border-radius: 8px;
-    cursor: grab;
-    display: flex;
-    align-items: center;
-    padding: 0 6px;
-    gap: 4px;
-    min-width: 48px;
-    touch-action: none;
-    user-select: none;
-}
-.timeline-clip-playing {
-    background: linear-gradient(180deg, #00d26a 0%, #00a854 100%);
-    border-color: #00ff88;
-    color: #000;
-    box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.2);
-}
-.timeline-clip-playing::after {
-    content: 'PLAYING';
-    position: absolute;
-    right: 8px;
-    top: 6px;
-    padding: 2px 6px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    font-size: 8px;
-    font-weight: 700;
-    border-radius: 999px;
-}
-.timeline-clip-name { font-size: 9px; font-weight: 700; flex: 1; truncate; overflow: hidden; white-space: nowrap; }
-.timeline-clip .clip-edit-btn { position: static; width: 20px; height: 20px; font-size: 10px; }
-.clip-loop-btn {
-    width: 20px; height: 20px; border-radius: 4px; font-size: 10px;
-    background: #1f1f1f; border: 1px solid #444; color: #888;
-}
-.clip-loop-btn.active { background: #00d26a; color: #000; border-color: #00ff88; }
-.clip-length-select {
-    font-size: 8px; background: #1f1f1f; border: 1px solid #444;
-    border-radius: 4px; color: #aaa; max-width: 36px;
-}
-.clip-record-btn {
-    position: absolute;
-    left: 4px;
-    bottom: 4px;
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    background: #1f1f1f;
-    border: 1px solid #444;
-    color: #f15a29;
-    font-size: 10px;
-    z-index: 2;
     cursor: pointer;
+    overflow: hidden;
 }
-.clip-record-btn.recording {
-    background: #ef4444;
-    border-color: #ff6b6b;
-    color: #fff;
+.arrangement-playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #f15a29;
+    z-index: 5;
+    pointer-events: none;
+    box-shadow: 0 0 6px rgba(241, 90, 41, 0.55);
+    transform: translateX(-1px);
+}
+.arr-note {
+    position: absolute;
+    height: 10px;
+    min-width: 3px;
+    border-radius: 2px;
+    opacity: 0.9;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+}
+.arr-hit {
+    position: absolute;
+    top: 18%;
+    bottom: 18%;
+    width: 3px;
+    border-radius: 1px;
+    opacity: 0.95;
+    pointer-events: none;
+}
+.arr-audio {
+    position: absolute;
+    top: 14px;
+    bottom: 14px;
+    border-radius: 6px;
+    opacity: 0.55;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+}
+.record-track-btn.recording {
+    background: #ef4444 !important;
+    border-color: #ff6b6b !important;
+    color: #fff !important;
     animation: pulse-rec 0.8s ease infinite;
-}
-.clip-record-btn.has-audio { border-color: #00d26a; color: #00d26a; }
-.clip-remove-btn {
-    width: 20px; height: 20px; border-radius: 6px; background: #1f1f1f;
-    border: 1px solid #444; color: #f87171; font-size: 10px; cursor: pointer;
-}
-.clip-remove-btn:hover {
-    background: #2e1414; border-color: #f87171;
 }
 @keyframes pulse-rec {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
 }
-
-.clip-resize-handle {
-    position: absolute; right: 0; top: 0; bottom: 0; width: 8px;
-    cursor: ew-resize; background: rgba(0,255,136,0.3); border-radius: 0 6px 6px 0;
+.piano-roll-canvas {
+    display: block;
+    background: #141414;
+    border-radius: 8px;
+    border: 1px solid #333;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
-.piano-roll-canvas { display: block; background: #141414; border-radius: 8px; border: 1px solid #333; }
 .clip-slot {
     transition: all 0.1s ease;
     min-height: 54px;

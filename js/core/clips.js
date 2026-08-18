@@ -1,4 +1,4 @@
-import { STEPS_PER_BAR, CLIPS_PER_TRACK } from './constants.js';
+import { STEPS_PER_BAR, TIMELINE_BARS } from './constants.js';
 
 let nextClipId = 0;
 
@@ -9,18 +9,18 @@ let nextClipId = 0;
  * @param {object} [opts]
  */
 export function createClip(type, opts = {}) {
-  const lengthBars = opts.lengthBars ?? 1;
+  const lengthBars = opts.lengthBars ?? TIMELINE_BARS;
   const lengthSteps = lengthBars * STEPS_PER_BAR;
   const id = opts.id ?? nextClipId++;
   if (id >= nextClipId) nextClipId = id + 1;
 
   return {
     id,
-    name: opts.name ?? `Clip ${id + 1}`,
+    name: opts.name ?? 'Arrangement',
     startStep: opts.startStep ?? 0,
     lengthBars,
     lengthSteps,
-    loop: opts.loop ?? true,
+    loop: opts.loop ?? false,
     playing: opts.playing ?? false,
     playStep: 0,
     steps: (type === 'melodic' || type === 'sampleInstrument') ? null : type === 'audio' ? null : createEmptySteps(lengthSteps),
@@ -43,10 +43,10 @@ export function createEmptySteps(lengthSteps) {
  */
 export function createDefaultClips(type, count = 1) {
   return Array.from({ length: count }, (_, i) => createClip(type, {
-    name: `Clip ${i + 1}`,
-    startStep: i * STEPS_PER_BAR,
-    lengthBars: 1,
-    loop: true,
+    name: 'Arrangement',
+    startStep: 0,
+    lengthBars: TIMELINE_BARS,
+    loop: false,
   }));
 }
 
